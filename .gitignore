@@ -1,0 +1,9 @@
+myProjk/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.vscode/
+
+data/raw/
+local_notes/
+.DS_Store
