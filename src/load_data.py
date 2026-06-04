@@ -18,7 +18,6 @@ COLUMNS = (
 
 
 def download_data() -> None:
-    # 1
     RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     if ZIP_PATH.exists():
@@ -41,7 +40,6 @@ def download_data() -> None:
 
 
 def extract_data() -> None:
-    # 2
     expected_file = RAW_DATA_DIR / "train_FD001.txt"
 
     if expected_file.exists():
@@ -55,7 +53,6 @@ def extract_data() -> None:
 
 
 def read_fd001_file(filename: str) -> pd.DataFrame:
-    # 3
     path = RAW_DATA_DIR / filename
 
     if not path.exists():
@@ -67,17 +64,14 @@ def read_fd001_file(filename: str) -> pd.DataFrame:
 
 
 def load_train_data() -> pd.DataFrame:
-    # 4
     return read_fd001_file("train_FD001.txt")
 
 
 def load_test_data() -> pd.DataFrame:
-    # 5
     return read_fd001_file("test_FD001.txt")
 
 
 def load_test_rul() -> pd.DataFrame:
-    # 6
     path = RAW_DATA_DIR / "RUL_FD001.txt"
 
     if not path.exists():
@@ -89,7 +83,6 @@ def load_test_rul() -> pd.DataFrame:
 
 
 def main() -> None:
-    # 7
     download_data()
     extract_data()
 
