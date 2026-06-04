@@ -28,7 +28,6 @@ RESULTS_DIR = Path("results")
 
 
 def plot_sensor_trends(train_data: pd.DataFrame) -> None:
-    # 1
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     sample_units = [1, 2, 3]
     sensors = ["sensor_2", "sensor_7", "sensor_11", "sensor_15"]
@@ -54,7 +53,6 @@ def plot_sensor_trends(train_data: pd.DataFrame) -> None:
 
 
 def plot_rul_distribution(train_data: pd.DataFrame) -> None:
-    # 2
     plt.figure(figsize=(8, 5))
     train_data["rul"].hist(bins=30)
     plt.title("Training RUL Distribution")
@@ -66,14 +64,12 @@ def plot_rul_distribution(train_data: pd.DataFrame) -> None:
 
 
 def save_metrics(mae: float, rmse: float) -> None:
-    # 3
     with (RESULTS_DIR / "model_metrics.txt").open("w", encoding="utf-8") as file:
         file.write(f"MAE: {mae:.2f} cycles\n")
         file.write(f"RMSE: {rmse:.2f} cycles\n")
 
 
 def train_baseline() -> None:
-    # 4
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
     train_data = add_train_rul(load_train_data())
