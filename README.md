@@ -20,8 +20,8 @@ FD001 contains 100 training engine trajectories and 100 test trajectories. In th
 ## Setup
 
 ```bash
-python -m venv myProjk
-source myProjk/bin/activate
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
