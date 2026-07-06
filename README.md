@@ -68,7 +68,7 @@ http://localhost:8001/results/dashboard.html
 
 The dashboard is an HTML file, but the engine lookup loads `results/engine_timeseries.json`, so serving the project folder locally is more reliable than opening the file directly.
 
-## Results From My Run
+## Results
 
 The model is tuned per subset because the four C-MAPSS subsets represent different operating and fault conditions. The tuner uses validation engines from the training data, creates several in-service snapshots per engine, then chooses the configuration that balances prediction error with the cost of missing truly critical engines.
 
@@ -81,6 +81,26 @@ Weighted overall results across all 707 test engines:
 - Critical false negatives: `17` engines
 
 The `77.1%` risk bucket match is a strict four-level comparison between predicted and true risk bands. For a maintenance workflow, the more important safety metric is critical recall: how many engines with 30 cycles or fewer remaining were correctly flagged as critical. This run catches `89.2%` of truly critical engines.
+
+## Visual Results
+
+The dashboard and plots are generated into `results/` after running the pipeline.
+
+### Model Comparison
+
+![Model comparison](results/model_comparison.png)
+
+### Fleet Risk Summary
+
+![Fleet risk summary](results/fleet_risk_summary.png)
+
+### Prediction Quality
+
+![Predicted versus actual RUL](results/predicted_vs_actual.png)
+
+### Feature Importance
+
+![Feature importance](results/feature_importance.png)
 
 ```text
 RUL cap used for training: 125 cycles
@@ -140,6 +160,8 @@ The pipeline writes these main outputs to `results/`:
 - `subset_metrics.csv`: FD001, FD002, FD003, and FD004 model performance summary
 - `model_tuning_results.csv`: validation results for the candidate model configurations
 - `model_comparison.csv`: XGBoost versus GRU and TCN sequence models
+- `tcn_tuning_results.csv`: validation grid for the TCN hyperparameter tuning experiment
+- `tcn_tuned_test_metrics.csv`: held-out test results for the selected tuned TCN configs
 - `model_metrics.txt`: model error and urgent-maintenance count
 - `predicted_vs_actual.csv`: actual and predicted RUL values
 - `predicted_vs_actual.png`: model accuracy plot
@@ -168,6 +190,7 @@ Weighted overall comparison:
 | Tuned XGBoost | 17.27 | 23.94 | 77.1% | 89.2% | 17 |
 | GRU Sequence Model | 19.71 | 27.49 | 73.3% | 87.2% | 20 |
 | TCN Sequence Model | 20.37 | 27.65 | 72.1% | 83.1% | 27 |
+| Tuned TCN Sequence Model | 19.81 | 27.66 | 74.8% | 87.6% | 20 |
 
 ### How To Read The Metrics
 
@@ -181,11 +204,21 @@ Weighted overall comparison:
 
 XGBoost is still the best model in this project. It has the lowest average error, the best risk bucket match, the highest critical recall, and the fewest missed critical engines.
 
-The sliding-window upgrade makes the sequence models much stronger than the earlier small-snapshot version. GRU improves from `21.98` to `19.71` MAE and reduces critical misses from `26` to `20`. TCN improves its critical misses from `31` to `27`, but GRU is the stronger sequence baseline in this run.
+The sliding-window upgrade makes the sequence models much stronger than the earlier small-snapshot version. GRU improves from `21.98` to `19.71` MAE and reduces critical misses from `26` to `20`. TCN improves its critical misses from `31` to `27`.
 
-This result does not mean sequence models are bad. It means that for this C-MAPSS setup, the engineered tabular features plus tuned XGBoost are stronger than the current GRU and TCN implementations. XGBoost is very effective when the time-series behavior is summarized with good rolling, slope, and baseline features.
+For this C-MAPSS setup, engineered tabular features plus tuned XGBoost are stronger than the current GRU and TCN implementations. XGBoost is very effective when the time-series behavior is summarized with rolling, slope, delta, and baseline-deviation features.
 
-For future improvement, the sequence models could be revisited with longer windows, more tuning, operating-regime normalization, cost-weighted loss functions, or larger architectures. For the current project, XGBoost remains the main predictive maintenance model and GRU is the best experimental sequence model.
+A validation-based TCN hyperparameter tuning experiment is included:
+
+```bash
+python src/tcn_tuning_experiment.py
+```
+
+The tuning script tries multiple TCN hidden sizes, dilation patterns, dropout levels, loss functions, learning rates, and critical-engine loss weights. It selects the best configuration per subset using validation engines from the training set, then evaluates the selected configurations once on the held-out NASA test engines.
+
+Tuning helped the TCN substantially: critical recall improved from `83.1%` to `87.6%`, and critical misses dropped from `27` to `20`. It especially helped FD002 and FD004. Tuned TCN still does not beat tuned XGBoost overall, but it becomes competitive with the GRU on maintenance recall.
+
+XGBoost already uses per-subset validation tuning in this project. More XGBoost tuning is possible with a larger random search or Optuna-style optimization, but the current XGBoost model is already the strongest tested model. For the current project, XGBoost remains the main predictive maintenance model.
 
 ## Maintenance Report
 
@@ -212,7 +245,8 @@ The action rules are intentionally simple and easy to explain:
 src/
 ├── load_data.py                 # download and read all C-MAPSS subset files
 ├── preprocessing.py             # RUL target, feature engineering, action labels
-└── predictive_maintenance.py    # model, report, plots, dashboard
+├── predictive_maintenance.py    # model, report, plots, dashboard
+└── tcn_tuning_experiment.py     # validation-based TCN hyperparameter tuning experiment
 ```
 
 ## Next Steps
