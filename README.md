@@ -159,13 +159,15 @@ The models answer the same question: given the latest available information for 
 - **GRU Sequence Model** reads the last 30 cycles directly as a sequence. GRUs are recurrent neural networks designed for ordered data.
 - **TCN Sequence Model** also reads the last 30 cycles directly, but uses dilated 1D convolutions instead of recurrence. TCNs can learn local and medium-range temporal patterns efficiently.
 
+The sequence models are trained with sliding windows every 10 cycles after the first 30 cycles, plus each engine's final cycle. That creates `14,937` sequence training windows across FD001-FD004 instead of only a few snapshots per engine.
+
 Weighted overall comparison:
 
 | Model | MAE | RMSE | Risk bucket match | Critical recall | Critical misses |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Tuned XGBoost | 17.27 | 23.94 | 77.1% | 89.2% | 17 |
-| GRU Sequence Model | 21.98 | 30.22 | 67.3% | 83.5% | 26 |
-| TCN Sequence Model | 21.22 | 28.57 | 70.0% | 80.4% | 31 |
+| GRU Sequence Model | 19.71 | 27.49 | 73.3% | 87.2% | 20 |
+| TCN Sequence Model | 20.37 | 27.65 | 72.1% | 83.1% | 27 |
 
 ### How To Read The Metrics
 
@@ -177,13 +179,13 @@ Weighted overall comparison:
 
 ### What The Comparison Shows
 
-XGBoost is the best model in this project. It has the lowest average error, the best risk bucket match, the highest critical recall, and the fewest missed critical engines.
+XGBoost is still the best model in this project. It has the lowest average error, the best risk bucket match, the highest critical recall, and the fewest missed critical engines.
 
-The GRU does reasonably well at detecting urgent engines, especially on FD002, but it has higher average error than XGBoost. The TCN improves over the GRU on MAE, RMSE, and risk bucket match, but it misses more critical engines overall. For predictive maintenance, that tradeoff is not ideal because missing a near-failure engine is worse than being slightly conservative.
+The sliding-window upgrade makes the sequence models much stronger than the earlier small-snapshot version. GRU improves from `21.98` to `19.71` MAE and reduces critical misses from `26` to `20`. TCN improves its critical misses from `31` to `27`, but GRU is the stronger sequence baseline in this run.
 
-This result does not mean sequence models are bad. It means that for this C-MAPSS setup, the engineered tabular features plus tuned XGBoost are stronger than the current GRU and TCN implementations. The dataset is not huge, and XGBoost is very effective when the time-series behavior is summarized with good rolling, slope, and baseline features.
+This result does not mean sequence models are bad. It means that for this C-MAPSS setup, the engineered tabular features plus tuned XGBoost are stronger than the current GRU and TCN implementations. XGBoost is very effective when the time-series behavior is summarized with good rolling, slope, and baseline features.
 
-For future improvement, the sequence models could be revisited with longer windows, more tuning, operating-regime normalization, cost-weighted loss functions, or larger architectures. For the current project, XGBoost remains the main predictive maintenance model.
+For future improvement, the sequence models could be revisited with longer windows, more tuning, operating-regime normalization, cost-weighted loss functions, or larger architectures. For the current project, XGBoost remains the main predictive maintenance model and GRU is the best experimental sequence model.
 
 ## Maintenance Report
 

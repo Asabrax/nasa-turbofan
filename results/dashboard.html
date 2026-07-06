@@ -368,7 +368,7 @@
     
     <section>
       <h2>Model Comparison</h2>
-      <p class="section-note">This compares the selected XGBoost model against real GRU and TCN sequence models trained on the last 30 cycles of operating settings and sensor readings. All models are evaluated on the same test engines and maintenance metrics.</p>
+      <p class="section-note">This compares the selected XGBoost model against real GRU and TCN sequence models. The sequence models read the last 30 cycles and are trained with sliding windows every 10 cycles, so they learn from many in-service points per engine instead of only the final state. All models are evaluated on the same test engines and maintenance metrics.</p>
       <img src="model_comparison.png" alt="Model comparison chart">
       <div class="table-wrap">
         <table class="comparison-table">
@@ -386,20 +386,20 @@
           </thead>
           <tbody>
             <tr class="summary-row"><td>Tuned XGBoost</td><td>Overall</td><td>707</td><td>17.27</td><td>23.94</td><td>77.1%</td><td>89.2%</td><td>17</td></tr>
-<tr class="summary-row"><td>GRU Sequence Model</td><td>Overall</td><td>707</td><td>21.98</td><td>30.22</td><td>67.3%</td><td>83.5%</td><td>26</td></tr>
-<tr class="summary-row"><td>TCN Sequence Model</td><td>Overall</td><td>707</td><td>21.22</td><td>28.57</td><td>70.0%</td><td>80.4%</td><td>31</td></tr>
+<tr class="summary-row"><td>GRU Sequence Model</td><td>Overall</td><td>707</td><td>19.71</td><td>27.49</td><td>73.3%</td><td>87.2%</td><td>20</td></tr>
+<tr class="summary-row"><td>TCN Sequence Model</td><td>Overall</td><td>707</td><td>20.37</td><td>27.65</td><td>72.1%</td><td>83.1%</td><td>27</td></tr>
 <tr><td>Tuned XGBoost</td><td>FD001</td><td>100</td><td>9.89</td><td>12.94</td><td>79.0%</td><td>84.0%</td><td>4</td></tr>
 <tr><td>Tuned XGBoost</td><td>FD002</td><td>259</td><td>19.34</td><td>27.62</td><td>78.8%</td><td>96.7%</td><td>2</td></tr>
 <tr><td>Tuned XGBoost</td><td>FD003</td><td>100</td><td>10.18</td><td>13.79</td><td>81.0%</td><td>90.0%</td><td>2</td></tr>
 <tr><td>Tuned XGBoost</td><td>FD004</td><td>248</td><td>20.95</td><td>28.62</td><td>73.0%</td><td>83.0%</td><td>9</td></tr>
-<tr><td>GRU Sequence Model</td><td>FD001</td><td>100</td><td>15.25</td><td>21.37</td><td>64.0%</td><td>80.0%</td><td>5</td></tr>
-<tr><td>GRU Sequence Model</td><td>FD002</td><td>259</td><td>22.70</td><td>32.77</td><td>68.7%</td><td>91.8%</td><td>5</td></tr>
-<tr><td>GRU Sequence Model</td><td>FD003</td><td>100</td><td>12.62</td><td>16.72</td><td>76.0%</td><td>90.0%</td><td>2</td></tr>
-<tr><td>GRU Sequence Model</td><td>FD004</td><td>248</td><td>27.71</td><td>36.57</td><td>63.7%</td><td>73.6%</td><td>14</td></tr>
-<tr><td>TCN Sequence Model</td><td>FD001</td><td>100</td><td>13.64</td><td>19.19</td><td>69.0%</td><td>72.0%</td><td>7</td></tr>
-<tr><td>TCN Sequence Model</td><td>FD002</td><td>259</td><td>22.05</td><td>30.73</td><td>72.2%</td><td>88.5%</td><td>7</td></tr>
-<tr><td>TCN Sequence Model</td><td>FD003</td><td>100</td><td>16.78</td><td>21.15</td><td>67.0%</td><td>75.0%</td><td>5</td></tr>
-<tr><td>TCN Sequence Model</td><td>FD004</td><td>248</td><td>25.22</td><td>33.09</td><td>69.4%</td><td>77.4%</td><td>12</td></tr>
+<tr><td>GRU Sequence Model</td><td>FD001</td><td>100</td><td>13.99</td><td>19.32</td><td>70.0%</td><td>80.0%</td><td>5</td></tr>
+<tr><td>GRU Sequence Model</td><td>FD002</td><td>259</td><td>20.26</td><td>30.17</td><td>77.2%</td><td>96.7%</td><td>2</td></tr>
+<tr><td>GRU Sequence Model</td><td>FD003</td><td>100</td><td>12.58</td><td>17.19</td><td>74.0%</td><td>85.0%</td><td>3</td></tr>
+<tr><td>GRU Sequence Model</td><td>FD004</td><td>248</td><td>24.31</td><td>32.15</td><td>70.2%</td><td>81.1%</td><td>10</td></tr>
+<tr><td>TCN Sequence Model</td><td>FD001</td><td>100</td><td>14.87</td><td>19.26</td><td>66.0%</td><td>64.0%</td><td>9</td></tr>
+<tr><td>TCN Sequence Model</td><td>FD002</td><td>259</td><td>20.80</td><td>30.17</td><td>76.4%</td><td>93.4%</td><td>4</td></tr>
+<tr><td>TCN Sequence Model</td><td>FD003</td><td>100</td><td>13.93</td><td>18.74</td><td>74.0%</td><td>85.0%</td><td>3</td></tr>
+<tr><td>TCN Sequence Model</td><td>FD004</td><td>248</td><td>24.73</td><td>32.00</td><td>69.4%</td><td>79.2%</td><td>11</td></tr>
           </tbody>
         </table>
       </div>

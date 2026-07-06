@@ -41,6 +41,7 @@ RESULTS_DIR = Path("results")
 SUBSETS = ("FD001", "FD002", "FD003", "FD004")
 RUL_CAP = 125
 SEQUENCE_WINDOW = 30
+SEQUENCE_STRIDE = 10
 ENGINE_DETAIL_SENSORS = ("sensor_2", "sensor_7", "sensor_11", "sensor_15")
 MODEL_ORDER = ("Tuned XGBoost", "GRU Sequence Model", "TCN Sequence Model")
 DEFAULT_MODEL_PARAMS = {
@@ -352,10 +353,8 @@ def make_sequence_training_set(
     for _, engine_rows in data.groupby("unit_number"):
         engine_rows = engine_rows.sort_values("time_in_cycles")
         max_cycle = int(engine_rows["time_in_cycles"].max())
-        target_cycles = {
-            max(1, int(round(max_cycle * fraction)))
-            for fraction in (0.2, 0.35, 0.5, 0.65, 0.8, 0.92, 1.0)
-        }
+        target_cycles = set(range(SEQUENCE_WINDOW, max_cycle + 1, SEQUENCE_STRIDE))
+        target_cycles.add(max_cycle)
 
         for cycle in sorted(target_cycles):
             features.append(sequence_window_array(engine_rows, cycle, columns))
@@ -478,14 +477,14 @@ def fit_torch_sequence_model(
     x_tensor = torch.tensor(train_x, dtype=torch.float32)
     y_tensor = torch.tensor(scaled_y, dtype=torch.float32)
     sample_count = len(x_tensor)
-    batch_size = min(64, sample_count)
+    batch_size = min(128, sample_count)
     best_loss = float("inf")
     best_state = None
-    patience = 16
+    patience = 12
     stale_epochs = 0
 
     rng = np.random.default_rng(42)
-    for _ in range(140):
+    for _ in range(100):
         model.train()
         indices = rng.permutation(sample_count)
         epoch_losses = []
@@ -565,6 +564,8 @@ def train_torch_sequence_subset(
         **maintenance_metrics,
         "average_predicted_rul": float(report["predicted_rul"].mean()),
         "window_cycles": SEQUENCE_WINDOW,
+        "window_stride": SEQUENCE_STRIDE,
+        "training_windows": int(len(train_y)),
     }
 
     return report, metrics
@@ -936,7 +937,7 @@ def build_dashboard(
         model_comparison_section = f"""
     <section>
       <h2>Model Comparison</h2>
-      <p class="section-note">This compares the selected XGBoost model against real GRU and TCN sequence models trained on the last {SEQUENCE_WINDOW} cycles of operating settings and sensor readings. All models are evaluated on the same test engines and maintenance metrics.</p>
+      <p class="section-note">This compares the selected XGBoost model against real GRU and TCN sequence models. The sequence models read the last {SEQUENCE_WINDOW} cycles and are trained with sliding windows every {SEQUENCE_STRIDE} cycles, so they learn from many in-service points per engine instead of only the final state. All models are evaluated on the same test engines and maintenance metrics.</p>
       <img src="model_comparison.png" alt="Model comparison chart">
       <div class="table-wrap">
         <table class="comparison-table">
