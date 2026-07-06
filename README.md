@@ -248,7 +248,3 @@ src/
 ├── predictive_maintenance.py    # model, report, plots, dashboard
 └── tcn_tuning_experiment.py     # validation-based TCN hyperparameter tuning experiment
 ```
-
-## Next Steps
-
-The next step would be to validate the risk thresholds with domain assumptions or add a time-series model.
