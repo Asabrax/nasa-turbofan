@@ -43,7 +43,12 @@ RUL_CAP = 125
 SEQUENCE_WINDOW = 30
 SEQUENCE_STRIDE = 10
 ENGINE_DETAIL_SENSORS = ("sensor_2", "sensor_7", "sensor_11", "sensor_15")
-MODEL_ORDER = ("Tuned XGBoost", "GRU Sequence Model", "TCN Sequence Model")
+MODEL_ORDER = (
+    "Tuned XGBoost",
+    "GRU Sequence Model",
+    "TCN Sequence Model",
+    "Tuned TCN Sequence Model",
+)
 DEFAULT_MODEL_PARAMS = {
     "objective": "reg:squarederror",
     "n_estimators": 700,
