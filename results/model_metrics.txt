@@ -1,2 +1,67 @@
-MAE: 23.99 cycles
-RMSE: 32.58 cycles
+Subsets: FD001, FD002, FD003, FD004
+RUL cap used for training: 125 cycles
+
+FD001
+Train engines: 100
+Test engines: 100
+MAE: 9.89 cycles
+RMSE: 12.94 cycles
+Engines needing urgent maintenance: 21
+Risk decision accuracy: 79.0%
+Critical recall: 84.0%
+Critical false negatives: 4
+High-priority recall: 87.2%
+High-priority false negatives: 5
+Average predicted RUL: 74.60 cycles
+Validation MAE: 8.95 cycles
+Uses cycle feature: True
+XGBoost trees: 900
+
+FD002
+Train engines: 260
+Test engines: 259
+MAE: 19.34 cycles
+RMSE: 27.62 cycles
+Engines needing urgent maintenance: 62
+Risk decision accuracy: 78.8%
+Critical recall: 96.7%
+Critical false negatives: 2
+High-priority recall: 90.2%
+High-priority false negatives: 10
+Average predicted RUL: 72.95 cycles
+Validation MAE: 14.88 cycles
+Uses cycle feature: True
+XGBoost trees: 900
+
+FD003
+Train engines: 100
+Test engines: 100
+MAE: 10.18 cycles
+RMSE: 13.79 cycles
+Engines needing urgent maintenance: 18
+Risk decision accuracy: 81.0%
+Critical recall: 90.0%
+Critical false negatives: 2
+High-priority recall: 82.9%
+High-priority false negatives: 7
+Average predicted RUL: 76.28 cycles
+Validation MAE: 10.43 cycles
+Uses cycle feature: True
+XGBoost trees: 700
+
+FD004
+Train engines: 249
+Test engines: 248
+MAE: 20.95 cycles
+RMSE: 28.62 cycles
+Engines needing urgent maintenance: 48
+Risk decision accuracy: 73.0%
+Critical recall: 83.0%
+Critical false negatives: 9
+High-priority recall: 86.8%
+High-priority false negatives: 12
+Average predicted RUL: 78.90 cycles
+Validation MAE: 19.65 cycles
+Uses cycle feature: True
+XGBoost trees: 700
+

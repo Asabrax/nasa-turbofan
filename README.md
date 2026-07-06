@@ -1,21 +1,36 @@
 # NASA Turbofan Predictive Maintenance
 
-This is a small predictive maintenance project using the NASA C-MAPSS turbofan engine degradation dataset.
+This project uses the NASA C-MAPSS turbofan engine degradation dataset to build a predictive maintenance workflow.
 
-I started with FD001 because it is the simplest subset: one operating condition and one fault mode. The goal is not to beat research papers, but to practice a realistic data workflow:
-
-- load sensor data
-- clean column names
-- create a Remaining Useful Life target
-- plot sensor degradation
-- train a simple baseline model
-- evaluate with MAE and RMSE
+The project predicts Remaining Useful Life, usually shortened to RUL, then converts that prediction into fleet risk levels and recommended maintenance actions.
 
 ## Dataset
 
 The data comes from NASA's C-MAPSS Jet Engine Simulated Data.
 
-FD001 contains 100 training engine trajectories and 100 test trajectories. In the training data, each engine runs until failure. In the test data, each engine stops before failure, and NASA provides the true remaining useful life separately.
+This project uses all four C-MAPSS subsets:
+
+- `FD001`: one operating condition and one fault mode
+- `FD002`: six operating conditions and one fault mode
+- `FD003`: one operating condition and two fault modes
+- `FD004`: six operating conditions and two fault modes
+
+FD002 is harder because changing operating conditions affect the sensor readings. FD003 is harder because it includes two fault modes. FD004 combines both difficulties. The dashboard keeps each subset's metrics separate.
+
+## What The Pipeline Does
+
+- loads FD001, FD002, FD003, and FD004 train, test, and true RUL files
+- creates the RUL target for training engines
+- builds predictive features from sensor readings
+- includes engine age through `time_in_cycles`
+- adds rolling sensor means, rolling sensor standard deviations, and cycle-to-cycle sensor deltas
+- adds sensor slopes and deviation from each engine's own baseline
+- tunes a separate XGBoost RUL model for each subset with engine-level validation snapshots
+- predicts RUL for each test engine at its latest observed cycle
+- assigns risk levels and maintenance actions
+- tracks critical recall and false negatives so urgent engines are not hidden by average error
+- writes a maintenance report
+- creates charts and an interactive dashboard
 
 ## Setup
 
@@ -27,54 +42,177 @@ pip install -r requirements.txt
 
 ## Run
 
-Download and extract the FD001 files:
+Download and extract the C-MAPSS files:
 
 ```bash
 python src/load_data.py
 ```
 
-Train the baseline model and create plots:
+Run the predictive maintenance pipeline:
 
 ```bash
-python src/baseline_model.py
+python src/predictive_maintenance.py
 ```
 
-The outputs are saved in `results/`.
+Open the generated dashboard:
+
+```bash
+python3 -m http.server 8001
+```
+
+Then open:
+
+```text
+http://localhost:8001/results/dashboard.html
+```
+
+The dashboard is an HTML file, but the engine lookup loads `results/engine_timeseries.json`, so serving the project folder locally is more reliable than opening the file directly.
 
 ## Results From My Run
 
-The baseline model predicts RUL using the last available cycle for each test engine.
+The model is tuned per subset because the four C-MAPSS subsets represent different operating and fault conditions. The tuner uses validation engines from the training data, creates several in-service snapshots per engine, then chooses the configuration that balances prediction error with the cost of missing truly critical engines.
+
+Weighted overall results across all 707 test engines:
+
+- MAE: `17.27` cycles
+- RMSE: `23.94` cycles
+- Risk bucket match: `77.1%`
+- Critical recall: `89.2%`
+- Critical false negatives: `17` engines
+
+The `77.1%` risk bucket match is a strict four-level comparison between predicted and true risk bands. For a maintenance workflow, the more important safety metric is critical recall: how many engines with 30 cycles or fewer remaining were correctly flagged as critical. This run catches `89.2%` of truly critical engines.
 
 ```text
-MAE: 23.99 cycles
-RMSE: 32.58 cycles
+RUL cap used for training: 125 cycles
+
+FD001
+Train engines: 100
+Test engines: 100
+MAE: 9.89 cycles
+RMSE: 12.94 cycles
+Risk bucket match: 79.0%
+Critical recall: 84.0%
+Critical false negatives: 4
+Engines needing urgent maintenance: 21
+Average predicted RUL: 74.60 cycles
+
+FD002
+Train engines: 260
+Test engines: 259
+MAE: 19.34 cycles
+RMSE: 27.62 cycles
+Risk bucket match: 78.8%
+Critical recall: 96.7%
+Critical false negatives: 2
+Engines needing urgent maintenance: 62
+Average predicted RUL: 72.95 cycles
+
+FD003
+Train engines: 100
+Test engines: 100
+MAE: 10.18 cycles
+RMSE: 13.79 cycles
+Risk bucket match: 81.0%
+Critical recall: 90.0%
+Critical false negatives: 2
+Engines needing urgent maintenance: 18
+Average predicted RUL: 76.28 cycles
+
+FD004
+Train engines: 249
+Test engines: 248
+MAE: 20.95 cycles
+RMSE: 28.62 cycles
+Risk bucket match: 73.0%
+Critical recall: 83.0%
+Critical false negatives: 9
+Engines needing urgent maintenance: 48
+Average predicted RUL: 78.90 cycles
 ```
 
-## Plots
+## Dashboard And Outputs
 
-Some sensor values change over the engine lifetime. I plotted a few sample engines to get a first look at the degradation patterns.
+The pipeline writes these main outputs to `results/`:
 
-![Selected sensor trends](results/sensor_trends.png)
+- `dashboard.html`: static fleet dashboard
+- `engine_timeseries.json`: sensor history used by the dashboard engine lookup
+- `maintenance_report.csv`: per-engine prediction, risk level, and action
+- `subset_metrics.csv`: FD001, FD002, FD003, and FD004 model performance summary
+- `model_tuning_results.csv`: validation results for the candidate model configurations
+- `model_comparison.csv`: XGBoost versus GRU and TCN sequence models
+- `model_metrics.txt`: model error and urgent-maintenance count
+- `predicted_vs_actual.csv`: actual and predicted RUL values
+- `predicted_vs_actual.png`: model accuracy plot
+- `feature_importance.png`: strongest model features
+- `fleet_risk_summary.png`: count of engines by risk level
+- `model_comparison.png`: model comparison chart
+- `prediction_error_by_dataset.png`: model error spread by dataset
+- `rul_distribution.png`: capped training target distribution for technical review
 
-I also checked the distribution of the RUL target in the training data.
+## Model Comparison
 
-![RUL distribution](results/rul_distribution.png)
+Because turbofan degradation is time-dependent, I compared the selected tuned XGBoost model with real GRU and TCN sequence models built in PyTorch.
 
-Finally, I compared the model predictions with the true RUL values for the test engines.
+The models answer the same question: given the latest available information for a test engine, how many cycles are left before failure?
 
-![Predicted vs actual RUL](results/predicted_vs_actual.png)
+- **Tuned XGBoost** uses the latest engine snapshot plus engineered time features such as rolling sensor means, rolling standard deviations, deltas, slopes, and deviation from each engine's baseline.
+- **GRU Sequence Model** reads the last 30 cycles directly as a sequence. GRUs are recurrent neural networks designed for ordered data.
+- **TCN Sequence Model** also reads the last 30 cycles directly, but uses dilated 1D convolutions instead of recurrence. TCNs can learn local and medium-range temporal patterns efficiently.
 
-This is only a baseline. It is useful because it gives a starting point before trying more advanced feature engineering or sequence models.
+Weighted overall comparison:
+
+| Model | MAE | RMSE | Risk bucket match | Critical recall | Critical misses |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Tuned XGBoost | 17.27 | 23.94 | 77.1% | 89.2% | 17 |
+| GRU Sequence Model | 21.98 | 30.22 | 67.3% | 83.5% | 26 |
+| TCN Sequence Model | 21.22 | 28.57 | 70.0% | 80.4% | 31 |
+
+### How To Read The Metrics
+
+- **MAE**: average prediction error in cycles. Lower is better.
+- **RMSE**: like MAE, but punishes large mistakes more. Lower is better.
+- **Risk bucket match**: how often the predicted risk band matches the true risk band.
+- **Critical recall**: how many truly urgent engines were correctly flagged as critical. This is the most important safety metric.
+- **Critical misses**: engines with 30 cycles or fewer remaining that were not predicted as critical. Lower is better.
+
+### What The Comparison Shows
+
+XGBoost is the best model in this project. It has the lowest average error, the best risk bucket match, the highest critical recall, and the fewest missed critical engines.
+
+The GRU does reasonably well at detecting urgent engines, especially on FD002, but it has higher average error than XGBoost. The TCN improves over the GRU on MAE, RMSE, and risk bucket match, but it misses more critical engines overall. For predictive maintenance, that tradeoff is not ideal because missing a near-failure engine is worse than being slightly conservative.
+
+This result does not mean sequence models are bad. It means that for this C-MAPSS setup, the engineered tabular features plus tuned XGBoost are stronger than the current GRU and TCN implementations. The dataset is not huge, and XGBoost is very effective when the time-series behavior is summarized with good rolling, slope, and baseline features.
+
+For future improvement, the sequence models could be revisited with longer windows, more tuning, operating-regime normalization, cost-weighted loss functions, or larger architectures. For the current project, XGBoost remains the main predictive maintenance model.
+
+## Maintenance Report
+
+Each row in `results/maintenance_report.csv` represents one test engine at its latest available cycle. The `subset` and `engine_id` columns show whether the engine came from FD001, FD002, FD003, or FD004.
+
+The report includes:
+
+- actual RUL
+- predicted RUL
+- prediction error
+- risk level
+- recommended maintenance action
+
+The action rules are intentionally simple and easy to explain:
+
+- `0-30` predicted cycles: urgent maintenance
+- `31-60` predicted cycles: schedule maintenance
+- `61-90` predicted cycles: inspect soon
+- `91+` predicted cycles: normal monitoring
 
 ## Files
 
 ```text
 src/
-├── load_data.py       # download and read FD001 files
-├── preprocessing.py   # column names and RUL target
-└── baseline_model.py  # plots, baseline model, metrics
+├── load_data.py                 # download and read all C-MAPSS subset files
+├── preprocessing.py             # RUL target, feature engineering, action labels
+└── predictive_maintenance.py    # model, report, plots, dashboard
 ```
 
-## Notes
+## Next Steps
 
-The next step would be to improve the model with better feature engineering, rolling-window features, or trying the harder FD002/FD003/FD004 subsets later.
+The next step would be to validate the risk thresholds with domain assumptions or add a time-series model.
