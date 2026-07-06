@@ -40,10 +40,10 @@ def download_data() -> None:
 
 
 def extract_data() -> None:
-    expected_file = RAW_DATA_DIR / "train_FD001.txt"
+    expected_file = RAW_DATA_DIR / "train_FD002.txt"
 
     if expected_file.exists():
-        print("FD001 files already extracted.")
+        print("C-MAPSS files already extracted.")
         return
 
     with ZipFile(ZIP_PATH, "r") as zip_file:
@@ -52,7 +52,7 @@ def extract_data() -> None:
     print(f"Extracted files to: {RAW_DATA_DIR}")
 
 
-def read_fd001_file(filename: str) -> pd.DataFrame:
+def read_data_file(filename: str) -> pd.DataFrame:
     path = RAW_DATA_DIR / filename
 
     if not path.exists():
@@ -63,16 +63,16 @@ def read_fd001_file(filename: str) -> pd.DataFrame:
     return pd.read_csv(path, sep=r"\s+", header=None, names=COLUMNS)
 
 
-def load_train_data() -> pd.DataFrame:
-    return read_fd001_file("train_FD001.txt")
+def load_train_data(subset: str = "FD001") -> pd.DataFrame:
+    return read_data_file(f"train_{subset}.txt")
 
 
-def load_test_data() -> pd.DataFrame:
-    return read_fd001_file("test_FD001.txt")
+def load_test_data(subset: str = "FD001") -> pd.DataFrame:
+    return read_data_file(f"test_{subset}.txt")
 
 
-def load_test_rul() -> pd.DataFrame:
-    path = RAW_DATA_DIR / "RUL_FD001.txt"
+def load_test_rul(subset: str = "FD001") -> pd.DataFrame:
+    path = RAW_DATA_DIR / f"RUL_{subset}.txt"
 
     if not path.exists():
         raise FileNotFoundError(
@@ -86,14 +86,15 @@ def main() -> None:
     download_data()
     extract_data()
 
-    train = load_train_data()
-    test = load_test_data()
-    rul = load_test_rul()
+    for subset in ("FD001", "FD002", "FD003", "FD004"):
+        train = load_train_data(subset)
+        test = load_test_data(subset)
+        rul = load_test_rul(subset)
 
-    print(f"Train shape: {train.shape}")
-    print(f"Test shape: {test.shape}")
-    print(f"RUL shape: {rul.shape}")
-    print("Missing values in train:", int(train.isna().sum().sum()))
+        print(f"{subset} train shape: {train.shape}")
+        print(f"{subset} test shape: {test.shape}")
+        print(f"{subset} RUL shape: {rul.shape}")
+        print(f"{subset} missing values in train:", int(train.isna().sum().sum()))
 
 
 if __name__ == "__main__":
