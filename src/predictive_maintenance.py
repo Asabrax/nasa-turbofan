@@ -167,13 +167,16 @@ def risk_metrics(report: pd.DataFrame) -> dict[str, float]:
     critical_count = int(actual_critical.sum())
     high_priority_count = int(actual_high_priority.sum())
     false_negative_count = int((actual_critical & ~predicted_critical).sum())
+    critical_true_positive_count = int((actual_critical & predicted_critical).sum())
     high_priority_false_negative_count = int(
         (actual_high_priority & ~predicted_high_priority).sum()
     )
 
     return {
+        "actual_critical_engines": critical_count,
+        "critical_true_positives": critical_true_positive_count,
         "critical_recall": (
-            float((actual_critical & predicted_critical).sum() / critical_count)
+            float(critical_true_positive_count / critical_count)
             if critical_count
             else 0.0
         ),
@@ -188,6 +191,16 @@ def risk_metrics(report: pd.DataFrame) -> dict[str, float]:
         ),
         "high_priority_false_negatives": high_priority_false_negative_count,
     }
+
+
+def nasa_score(actual: pd.Series, predictions: pd.Series) -> float:
+    errors = predictions.to_numpy() - actual.to_numpy()
+    penalties = np.where(
+        errors < 0,
+        np.exp(-errors / 13.0) - 1.0,
+        np.exp(errors / 10.0) - 1.0,
+    )
+    return float(penalties.sum())
 
 
 def split_engine_units(data: pd.DataFrame, validation_fraction: float = 0.22) -> tuple[set[int], set[int]]:
@@ -564,6 +577,7 @@ def train_torch_sequence_subset(
         "test_engines": int(test_data["unit_number"].nunique()),
         "mae": mean_absolute_error(actual, predictions),
         "rmse": mean_squared_error(actual, predictions) ** 0.5,
+        "nasa_score": nasa_score(actual, predictions),
         "critical_engines": int((report["risk_level"] == "critical").sum()),
         "risk_decision_accuracy": float(report["risk_match"].mean()),
         **maintenance_metrics,
@@ -623,6 +637,7 @@ def train_subset(
         "test_engines": int(test_data["unit_number"].nunique()),
         "mae": mae,
         "rmse": rmse,
+        "nasa_score": nasa_score(actual, predictions),
         "critical_engines": int((report["risk_level"] == "critical").sum()),
         "risk_decision_accuracy": float(report["risk_match"].mean()),
         **maintenance_metrics,
@@ -649,6 +664,7 @@ def save_metrics(metrics: pd.DataFrame) -> None:
             file.write(f"Test engines: {int(row['test_engines'])}\n")
             file.write(f"MAE: {row['mae']:.2f} cycles\n")
             file.write(f"RMSE: {row['rmse']:.2f} cycles\n")
+            file.write(f"NASA score: {row['nasa_score']:.1f}\n")
             file.write(f"Engines needing urgent maintenance: {int(row['critical_engines'])}\n")
             file.write(f"Risk decision accuracy: {row['risk_decision_accuracy']:.1%}\n")
             file.write(f"Critical recall: {row['critical_recall']:.1%}\n")
@@ -831,13 +847,17 @@ def weighted_model_summary(comparison: pd.DataFrame) -> pd.DataFrame:
                 "subset": "Overall",
                 "test_engines": int(weights.sum()),
                 "mae": float((model_rows["mae"] * weights).sum() / weights.sum()),
-                "rmse": float((model_rows["rmse"] * weights).sum() / weights.sum()),
                 "risk_decision_accuracy": float(
                     (model_rows["risk_decision_accuracy"] * weights).sum()
                     / weights.sum()
                 ),
+                "rmse": float(
+                    np.sqrt((model_rows["rmse"].pow(2) * weights).sum() / weights.sum())
+                ),
+                "nasa_score": float(model_rows["nasa_score"].sum()),
                 "critical_recall": float(
-                    (model_rows["critical_recall"] * weights).sum() / weights.sum()
+                    model_rows["critical_true_positives"].sum()
+                    / model_rows["actual_critical_engines"].sum()
                 ),
                 "critical_false_negatives": int(
                     model_rows["critical_false_negatives"].sum()
@@ -867,6 +887,7 @@ def make_model_comparison_table(comparison: pd.DataFrame) -> str:
             f"<td>{int(row['test_engines'])}</td>"
             f"<td>{row['mae']:.2f}</td>"
             f"<td>{row['rmse']:.2f}</td>"
+            f"<td>{row['nasa_score']:.1f}</td>"
             f"<td>{row['risk_decision_accuracy']:.1%}</td>"
             f"<td>{row['critical_recall']:.1%}</td>"
             f"<td>{int(row['critical_false_negatives'])}</td>"
@@ -902,7 +923,15 @@ def plot_model_comparison(comparison: pd.DataFrame) -> None:
     left_axis.set_ylabel("MAE, cycles")
     right_axis.set_ylabel("critical recall, percent")
     left_axis.set_xticks(x)
-    left_axis.set_xticklabels(summary["model"], rotation=0)
+    short_labels = {
+        "Tuned XGBoost": "XGBoost",
+        "GRU Sequence Model": "GRU",
+        "TCN Sequence Model": "TCN",
+        "Tuned TCN Sequence Model": "Tuned TCN",
+    }
+    left_axis.set_xticklabels(
+        [short_labels.get(model, model) for model in summary["model"]], rotation=0
+    )
     left_axis.set_ylim(bottom=0)
     right_axis.set_ylim(0, 100)
 
@@ -925,13 +954,16 @@ def build_dashboard(
     low_count = int((report["risk_level"] == "low").sum())
     metric_weights = metrics["test_engines"]
     mean_mae = (metrics["mae"] * metric_weights).sum() / metric_weights.sum()
-    mean_rmse = (metrics["rmse"] * metric_weights).sum() / metric_weights.sum()
+    mean_rmse = np.sqrt(
+        (metrics["rmse"].pow(2) * metric_weights).sum() / metric_weights.sum()
+    )
     mean_risk_accuracy = (
         metrics["risk_decision_accuracy"] * metric_weights
     ).sum() / metric_weights.sum()
     mean_critical_recall = (
-        metrics["critical_recall"] * metric_weights
-    ).sum() / metric_weights.sum()
+        metrics["critical_true_positives"].sum()
+        / metrics["actual_critical_engines"].sum()
+    )
     critical_false_negatives = int(metrics["critical_false_negatives"].sum())
     report_records = report.sort_values("predicted_rul").to_dict(orient="records")
     report_json = json.dumps(report_records, separators=(",", ":"))
@@ -953,6 +985,7 @@ def build_dashboard(
               <th>Test Engines</th>
               <th>MAE</th>
               <th>RMSE</th>
+              <th>NASA Score</th>
               <th>Risk Match</th>
               <th>Crit. Recall</th>
               <th>Crit. Misses</th>
@@ -964,7 +997,7 @@ def build_dashboard(
         </table>
       </div>
       <div class="metric-note">
-        <p><strong>Interpretation:</strong> lower MAE is better, but for maintenance the critical recall and critical misses columns matter most. A model that looks slightly better on average can still be worse if it misses more urgent engines.</p>
+        <p><strong>Interpretation:</strong> lower MAE, RMSE, and NASA score are better. The NASA score penalizes late RUL predictions more strongly because overestimating remaining life is more dangerous. Critical recall and critical misses show whether urgent engines were caught.</p>
       </div>
     </section>
 """
@@ -1202,8 +1235,8 @@ def build_dashboard(
 <body>
   <header>
     <div class="eyebrow">Predictive maintenance demo</div>
-    <h1>NASA Turbofan Predictive Maintenance Dashboard</h1>
-    <p>A plain-language view of which simulated jet engines are closest to failure and what maintenance action to take first.</p>
+    <h1>NASA Turbofan Maintenance Evaluation</h1>
+    <p>A plain-language evaluation of which simulated jet engines are closest to failure and what maintenance action the model recommends.</p>
   </header>
   <main>
     <section class="intro">

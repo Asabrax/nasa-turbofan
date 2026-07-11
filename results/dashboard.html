@@ -231,8 +231,8 @@
 <body>
   <header>
     <div class="eyebrow">Predictive maintenance demo</div>
-    <h1>NASA Turbofan Predictive Maintenance Dashboard</h1>
-    <p>A plain-language view of which simulated jet engines are closest to failure and what maintenance action to take first.</p>
+    <h1>NASA Turbofan Maintenance Evaluation</h1>
+    <p>A plain-language evaluation of which simulated jet engines are closest to failure and what maintenance action the model recommends.</p>
   </header>
   <main>
     <section class="intro">
@@ -272,7 +272,7 @@
         <p>Exact match between predicted and true risk bands.</p>
       </div>
       <div class="metric">
-        <span>Critical Recall</span><strong>89.2%</strong>
+        <span>Critical Recall</span><strong>89.3%</strong>
         <p>Share of truly urgent engines caught by the critical-risk rule.</p>
       </div>
     </div>
@@ -379,37 +379,38 @@
               <th>Test Engines</th>
               <th>MAE</th>
               <th>RMSE</th>
+              <th>NASA Score</th>
               <th>Risk Match</th>
               <th>Crit. Recall</th>
               <th>Crit. Misses</th>
             </tr>
           </thead>
           <tbody>
-            <tr class="summary-row"><td>Tuned XGBoost</td><td>Overall</td><td>707</td><td>17.27</td><td>23.94</td><td>77.1%</td><td>89.2%</td><td>17</td></tr>
-<tr class="summary-row"><td>GRU Sequence Model</td><td>Overall</td><td>707</td><td>19.71</td><td>27.49</td><td>73.3%</td><td>87.2%</td><td>20</td></tr>
-<tr class="summary-row"><td>TCN Sequence Model</td><td>Overall</td><td>707</td><td>20.37</td><td>27.65</td><td>72.1%</td><td>83.1%</td><td>27</td></tr>
-<tr class="summary-row"><td>Tuned TCN Sequence Model</td><td>Overall</td><td>707</td><td>19.81</td><td>27.66</td><td>74.8%</td><td>87.6%</td><td>20</td></tr>
-<tr><td>Tuned XGBoost</td><td>FD001</td><td>100</td><td>9.89</td><td>12.94</td><td>79.0%</td><td>84.0%</td><td>4</td></tr>
-<tr><td>Tuned XGBoost</td><td>FD002</td><td>259</td><td>19.34</td><td>27.62</td><td>78.8%</td><td>96.7%</td><td>2</td></tr>
-<tr><td>Tuned XGBoost</td><td>FD003</td><td>100</td><td>10.18</td><td>13.79</td><td>81.0%</td><td>90.0%</td><td>2</td></tr>
-<tr><td>Tuned XGBoost</td><td>FD004</td><td>248</td><td>20.95</td><td>28.62</td><td>73.0%</td><td>83.0%</td><td>9</td></tr>
-<tr><td>GRU Sequence Model</td><td>FD001</td><td>100</td><td>13.99</td><td>19.32</td><td>70.0%</td><td>80.0%</td><td>5</td></tr>
-<tr><td>GRU Sequence Model</td><td>FD002</td><td>259</td><td>20.26</td><td>30.17</td><td>77.2%</td><td>96.7%</td><td>2</td></tr>
-<tr><td>GRU Sequence Model</td><td>FD003</td><td>100</td><td>12.58</td><td>17.19</td><td>74.0%</td><td>85.0%</td><td>3</td></tr>
-<tr><td>GRU Sequence Model</td><td>FD004</td><td>248</td><td>24.31</td><td>32.15</td><td>70.2%</td><td>81.1%</td><td>10</td></tr>
-<tr><td>TCN Sequence Model</td><td>FD001</td><td>100</td><td>14.87</td><td>19.26</td><td>66.0%</td><td>64.0%</td><td>9</td></tr>
-<tr><td>TCN Sequence Model</td><td>FD002</td><td>259</td><td>20.80</td><td>30.17</td><td>76.4%</td><td>93.4%</td><td>4</td></tr>
-<tr><td>TCN Sequence Model</td><td>FD003</td><td>100</td><td>13.93</td><td>18.74</td><td>74.0%</td><td>85.0%</td><td>3</td></tr>
-<tr><td>TCN Sequence Model</td><td>FD004</td><td>248</td><td>24.73</td><td>32.00</td><td>69.4%</td><td>79.2%</td><td>11</td></tr>
-<tr><td>Tuned TCN Sequence Model</td><td>FD001</td><td>100</td><td>13.82</td><td>18.39</td><td>69.0%</td><td>64.0%</td><td>9</td></tr>
-<tr><td>Tuned TCN Sequence Model</td><td>FD002</td><td>259</td><td>20.57</td><td>30.19</td><td>78.0%</td><td>98.4%</td><td>1</td></tr>
-<tr><td>Tuned TCN Sequence Model</td><td>FD003</td><td>100</td><td>14.51</td><td>19.22</td><td>75.0%</td><td>85.0%</td><td>3</td></tr>
-<tr><td>Tuned TCN Sequence Model</td><td>FD004</td><td>248</td><td>23.58</td><td>32.17</td><td>73.8%</td><td>86.8%</td><td>7</td></tr>
+            <tr class="summary-row"><td>Tuned XGBoost</td><td>Overall</td><td>707</td><td>17.27</td><td>24.85</td><td>17096.8</td><td>77.1%</td><td>89.3%</td><td>17</td></tr>
+<tr class="summary-row"><td>GRU Sequence Model</td><td>Overall</td><td>707</td><td>19.64</td><td>28.03</td><td>83564.8</td><td>73.8%</td><td>86.2%</td><td>22</td></tr>
+<tr class="summary-row"><td>TCN Sequence Model</td><td>Overall</td><td>707</td><td>20.37</td><td>28.19</td><td>36947.3</td><td>72.1%</td><td>83.0%</td><td>27</td></tr>
+<tr class="summary-row"><td>Tuned TCN Sequence Model</td><td>Overall</td><td>707</td><td>19.81</td><td>28.23</td><td>58809.4</td><td>74.8%</td><td>87.4%</td><td>20</td></tr>
+<tr><td>Tuned XGBoost</td><td>FD001</td><td>100</td><td>9.89</td><td>12.94</td><td>220.2</td><td>79.0%</td><td>84.0%</td><td>4</td></tr>
+<tr><td>Tuned XGBoost</td><td>FD002</td><td>259</td><td>19.34</td><td>27.62</td><td>10343.4</td><td>78.8%</td><td>96.7%</td><td>2</td></tr>
+<tr><td>Tuned XGBoost</td><td>FD003</td><td>100</td><td>10.18</td><td>13.79</td><td>335.5</td><td>81.0%</td><td>90.0%</td><td>2</td></tr>
+<tr><td>Tuned XGBoost</td><td>FD004</td><td>248</td><td>20.95</td><td>28.62</td><td>6197.7</td><td>73.0%</td><td>83.0%</td><td>9</td></tr>
+<tr><td>GRU Sequence Model</td><td>FD001</td><td>100</td><td>13.48</td><td>18.37</td><td>844.8</td><td>74.0%</td><td>72.0%</td><td>7</td></tr>
+<tr><td>GRU Sequence Model</td><td>FD002</td><td>259</td><td>20.26</td><td>30.17</td><td>66568.1</td><td>77.2%</td><td>96.7%</td><td>2</td></tr>
+<tr><td>GRU Sequence Model</td><td>FD003</td><td>100</td><td>12.58</td><td>17.19</td><td>897.4</td><td>74.0%</td><td>85.0%</td><td>3</td></tr>
+<tr><td>GRU Sequence Model</td><td>FD004</td><td>248</td><td>24.31</td><td>32.15</td><td>15254.6</td><td>70.2%</td><td>81.1%</td><td>10</td></tr>
+<tr><td>TCN Sequence Model</td><td>FD001</td><td>100</td><td>14.87</td><td>19.26</td><td>764.1</td><td>66.0%</td><td>64.0%</td><td>9</td></tr>
+<tr><td>TCN Sequence Model</td><td>FD002</td><td>259</td><td>20.80</td><td>30.17</td><td>23728.6</td><td>76.4%</td><td>93.4%</td><td>4</td></tr>
+<tr><td>TCN Sequence Model</td><td>FD003</td><td>100</td><td>13.93</td><td>18.74</td><td>1537.1</td><td>74.0%</td><td>85.0%</td><td>3</td></tr>
+<tr><td>TCN Sequence Model</td><td>FD004</td><td>248</td><td>24.73</td><td>32.00</td><td>10917.6</td><td>69.4%</td><td>79.2%</td><td>11</td></tr>
+<tr><td>Tuned TCN Sequence Model</td><td>FD001</td><td>100</td><td>13.82</td><td>18.39</td><td>716.9</td><td>69.0%</td><td>64.0%</td><td>9</td></tr>
+<tr><td>Tuned TCN Sequence Model</td><td>FD002</td><td>259</td><td>20.57</td><td>30.19</td><td>41860.2</td><td>78.0%</td><td>98.4%</td><td>1</td></tr>
+<tr><td>Tuned TCN Sequence Model</td><td>FD003</td><td>100</td><td>14.51</td><td>19.22</td><td>1290.4</td><td>75.0%</td><td>85.0%</td><td>3</td></tr>
+<tr><td>Tuned TCN Sequence Model</td><td>FD004</td><td>248</td><td>23.58</td><td>32.17</td><td>14941.9</td><td>73.8%</td><td>86.8%</td><td>7</td></tr>
           </tbody>
         </table>
       </div>
       <div class="metric-note">
-        <p><strong>Interpretation:</strong> lower MAE is better, but for maintenance the critical recall and critical misses columns matter most. A model that looks slightly better on average can still be worse if it misses more urgent engines.</p>
+        <p><strong>Interpretation:</strong> lower MAE, RMSE, and NASA score are better. The NASA score penalizes late RUL predictions more strongly because overestimating remaining life is more dangerous. Critical recall and critical misses show whether urgent engines were caught.</p>
       </div>
     </section>
 

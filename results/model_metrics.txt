@@ -6,6 +6,7 @@ Train engines: 100
 Test engines: 100
 MAE: 9.89 cycles
 RMSE: 12.94 cycles
+NASA score: 220.2
 Engines needing urgent maintenance: 21
 Risk decision accuracy: 79.0%
 Critical recall: 84.0%
@@ -22,6 +23,7 @@ Train engines: 260
 Test engines: 259
 MAE: 19.34 cycles
 RMSE: 27.62 cycles
+NASA score: 10343.4
 Engines needing urgent maintenance: 62
 Risk decision accuracy: 78.8%
 Critical recall: 96.7%
@@ -38,6 +40,7 @@ Train engines: 100
 Test engines: 100
 MAE: 10.18 cycles
 RMSE: 13.79 cycles
+NASA score: 335.5
 Engines needing urgent maintenance: 18
 Risk decision accuracy: 81.0%
 Critical recall: 90.0%
@@ -54,6 +57,7 @@ Train engines: 249
 Test engines: 248
 MAE: 20.95 cycles
 RMSE: 28.62 cycles
+NASA score: 6197.7
 Engines needing urgent maintenance: 48
 Risk decision accuracy: 73.0%
 Critical recall: 83.0%

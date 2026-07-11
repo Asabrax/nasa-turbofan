@@ -20,6 +20,7 @@ if __package__ in {None, ""}:
         build_maintenance_report,
         build_dashboard,
         maintenance_validation_score,
+        nasa_score,
         make_sequence_test_set,
         make_sequence_training_set,
         plot_model_comparison,
@@ -41,6 +42,7 @@ else:
         build_maintenance_report,
         build_dashboard,
         maintenance_validation_score,
+        nasa_score,
         make_sequence_test_set,
         make_sequence_training_set,
         plot_model_comparison,
@@ -337,6 +339,7 @@ def evaluate_predictions(actual: pd.Series, predictions: pd.Series) -> dict[str,
     return {
         "mae": mean_absolute_error(actual, predictions),
         "rmse": mean_squared_error(actual, predictions) ** 0.5,
+        "nasa_score": nasa_score(actual, predictions),
         "score": maintenance_validation_score(actual, predictions),
         "critical_recall": metrics["critical_recall"],
         "critical_false_negatives": metrics["critical_false_negatives"],
@@ -419,6 +422,7 @@ def evaluate_best_on_test(
         "test_engines": int(test_data["unit_number"].nunique()),
         "mae": mean_absolute_error(actual, predictions),
         "rmse": mean_squared_error(actual, predictions) ** 0.5,
+        "nasa_score": nasa_score(actual, predictions),
         "critical_engines": int((report["risk_level"] == "critical").sum()),
         "risk_decision_accuracy": float(report["risk_match"].mean()),
         **metrics,
@@ -457,7 +461,13 @@ def main() -> None:
     if test_path.exists():
         print(f"Loading saved tuned test results from {test_path}", flush=True)
         test_results = pd.read_csv(test_path)
-    else:
+
+    required_test_columns = {
+        "nasa_score",
+        "actual_critical_engines",
+        "critical_true_positives",
+    }
+    if not test_path.exists() or not required_test_columns.issubset(test_results.columns):
         test_metrics = []
         for best_config in selected_configs:
             subset = str(best_config["subset"])
