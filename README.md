@@ -72,15 +72,16 @@ The dashboard is an HTML file, but the engine lookup loads `results/engine_times
 
 The model is tuned per subset because the four C-MAPSS subsets represent different operating and fault conditions. The tuner uses validation engines from the training data, creates several in-service snapshots per engine, then chooses the configuration that balances prediction error with the cost of missing truly critical engines.
 
-Weighted overall results across all 707 test engines:
+Overall results across all 707 test engines:
 
 - MAE: `17.27` cycles
-- RMSE: `23.94` cycles
+- RMSE: `24.85` cycles
+- NASA score: `17,096.8`
 - Risk bucket match: `77.1%`
-- Critical recall: `89.2%`
+- Critical recall: `89.3%`
 - Critical false negatives: `17` engines
 
-The `77.1%` risk bucket match is a strict four-level comparison between predicted and true risk bands. For a maintenance workflow, the more important safety metric is critical recall: how many engines with 30 cycles or fewer remaining were correctly flagged as critical. This run catches `89.2%` of truly critical engines.
+The `77.1%` risk bucket match is a strict four-level comparison between predicted and true risk bands. For a maintenance workflow, the more important safety metric is critical recall: how many engines with 30 cycles or fewer remaining were correctly flagged as critical. This run catches `89.3%` of truly critical engines.
 
 ## Visual Results
 
@@ -183,19 +184,20 @@ The models answer the same question: given the latest available information for 
 
 The sequence models are trained with sliding windows every 10 cycles after the first 30 cycles, plus each engine's final cycle. That creates `14,937` sequence training windows across FD001-FD004 instead of only a few snapshots per engine.
 
-Weighted overall comparison:
+Overall comparison across the same 707 test engines:
 
-| Model | MAE | RMSE | Risk bucket match | Critical recall | Critical misses |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Tuned XGBoost | 17.27 | 23.94 | 77.1% | 89.2% | 17 |
-| GRU Sequence Model | 19.71 | 27.49 | 73.3% | 87.2% | 20 |
-| TCN Sequence Model | 20.37 | 27.65 | 72.1% | 83.1% | 27 |
-| Tuned TCN Sequence Model | 19.81 | 27.66 | 74.8% | 87.6% | 20 |
+| Model | MAE | RMSE | NASA score | Risk bucket match | Critical recall | Critical misses |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Tuned XGBoost | 17.27 | 24.85 | 17,096.8 | 77.1% | 89.3% | 17 |
+| GRU Sequence Model | 19.64 | 28.03 | 83,564.8 | 73.8% | 86.2% | 22 |
+| TCN Sequence Model | 20.37 | 28.19 | 36,947.3 | 72.1% | 83.0% | 27 |
+| Tuned TCN Sequence Model | 19.81 | 28.23 | 58,809.4 | 74.8% | 87.4% | 20 |
 
 ### How To Read The Metrics
 
 - **MAE**: average prediction error in cycles. Lower is better.
 - **RMSE**: like MAE, but punishes large mistakes more. Lower is better.
+- **NASA score**: an asymmetric error score that penalizes dangerous late RUL predictions more strongly. Lower is better, and values should only be compared on the same test engines.
 - **Risk bucket match**: how often the predicted risk band matches the true risk band.
 - **Critical recall**: how many truly urgent engines were correctly flagged as critical. This is the most important safety metric.
 - **Critical misses**: engines with 30 cycles or fewer remaining that were not predicted as critical. Lower is better.
@@ -204,7 +206,7 @@ Weighted overall comparison:
 
 XGBoost is still the best model in this project. It has the lowest average error, the best risk bucket match, the highest critical recall, and the fewest missed critical engines.
 
-The sliding-window upgrade makes the sequence models much stronger than the earlier small-snapshot version. GRU improves from `21.98` to `19.71` MAE and reduces critical misses from `26` to `20`. TCN improves its critical misses from `31` to `27`.
+The sliding-window upgrade makes the sequence models much stronger than the earlier small-snapshot version. GRU improves from `21.98` to `19.64` MAE and reduces critical misses from `26` to `22`. TCN improves its critical misses from `31` to `27`.
 
 For this C-MAPSS setup, engineered tabular features plus tuned XGBoost are stronger than the current GRU and TCN implementations. XGBoost is very effective when the time-series behavior is summarized with rolling, slope, delta, and baseline-deviation features.
 
@@ -216,7 +218,7 @@ python src/tcn_tuning_experiment.py
 
 The tuning script tries multiple TCN hidden sizes, dilation patterns, dropout levels, loss functions, learning rates, and critical-engine loss weights. It selects the best configuration per subset using validation engines from the training set, then evaluates the selected configurations once on the held-out NASA test engines.
 
-Tuning helped the TCN substantially: critical recall improved from `83.1%` to `87.6%`, and critical misses dropped from `27` to `20`. It especially helped FD002 and FD004. Tuned TCN still does not beat tuned XGBoost overall, but it becomes competitive with the GRU on maintenance recall.
+Tuning helped the TCN substantially: critical recall improved from `83.0%` to `87.4%`, and critical misses dropped from `27` to `20`. It especially helped FD002 and FD004. Tuned TCN still does not beat tuned XGBoost overall, but it becomes competitive with the GRU on maintenance recall.
 
 XGBoost already uses per-subset validation tuning in this project. More XGBoost tuning is possible with a larger random search or Optuna-style optimization, but the current XGBoost model is already the strongest tested model. For the current project, XGBoost remains the main predictive maintenance model.
 
