@@ -4,6 +4,11 @@ This project uses the NASA C-MAPSS turbofan engine degradation dataset to build 
 
 The project predicts Remaining Useful Life, usually shortened to RUL, then converts that prediction into fleet risk levels and recommended maintenance actions.
 
+> The metrics, charts, and dashboard currently committed in `results/` are historical
+> outputs from before the reproducibility and validation fixes described below.
+> They have not been regenerated with the corrected training procedure. Run the
+> main pipeline followed by the TCN tuning experiment to produce updated results.
+
 ## Dataset
 
 The data comes from NASA's C-MAPSS Jet Engine Simulated Data.
@@ -69,6 +74,10 @@ http://localhost:8001/results/dashboard.html
 The dashboard is an HTML file, but the engine lookup loads `results/engine_timeseries.json`, so serving the project folder locally is more reliable than opening the file directly.
 
 ## Results
+
+The numbers in this section and the model comparison below describe the historical
+run. Changes to initialization and validation-based checkpoint selection can change
+the neural-network results; these numbers are not a benchmark of the corrected code.
 
 The model is tuned per subset because the four C-MAPSS subsets represent different operating and fault conditions. The tuner uses validation engines from the training data, creates several in-service snapshots per engine, then chooses the configuration that balances prediction error with the cost of missing truly critical engines.
 
@@ -218,6 +227,40 @@ python src/tcn_tuning_experiment.py
 
 The tuning script tries multiple TCN hidden sizes, dilation patterns, dropout levels, loss functions, learning rates, and critical-engine loss weights. It selects the best configuration per subset using validation engines from the training set, then evaluates the selected configurations once on the held-out NASA test engines.
 
+### Reproducibility and validation
+
+- The GRU and both TCN implementations seed PyTorch before constructing the model.
+- Neural-network checkpoints are selected using the maintenance validation score
+  on held-out training engines. Validation targets use uncapped RUL, matching test
+  evaluation; training targets remain capped at 125 cycles.
+- After selection, each neural network is initialized again and trained on all
+  training engines for exactly the selected number of epochs. Test targets are
+  not used for checkpoint selection or stopping.
+- TCN result caches require matching source code, all twelve dataset files,
+  Python/platform information, dependency versions, and CSV content hashes.
+  Test results are also tied to the exact tuning-results CSV. Old CSVs without
+  metadata are recomputed. Metadata lives beside the CSVs in `.meta.json` files.
+- Rerunning the main pipeline retains compatible tuned-TCN results in the model
+  comparison and dashboard. Stale or unverified tuned results are omitted with
+  a message to rerun the tuning experiment.
+
+To force a fresh tuning and test run regardless of the cache:
+
+```bash
+python src/tcn_tuning_experiment.py --force
+```
+
+Repeatability is tested within the same environment. Different dependency versions
+or hardware may produce different numerical results. Repeated test evaluation
+should not be used to choose hyperparameters.
+
+Run the regression tests (small synthetic training runs; no NASA download needed):
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest -q
+```
+
 Tuning helped the TCN substantially: critical recall improved from `83.0%` to `87.4%`, and critical misses dropped from `27` to `20`. It especially helped FD002 and FD004. Tuned TCN still does not beat tuned XGBoost overall, but it becomes competitive with the GRU on maintenance recall.
 
 XGBoost already uses per-subset validation tuning in this project. More XGBoost tuning is possible with a larger random search or Optuna-style optimization, but the current XGBoost model is already the strongest tested model. For the current project, XGBoost remains the main predictive maintenance model.
@@ -248,5 +291,6 @@ src/
 ├── load_data.py                 # download and read all C-MAPSS subset files
 ├── preprocessing.py             # RUL target, feature engineering, action labels
 ├── predictive_maintenance.py    # model, report, plots, dashboard
+├── result_cache.py              # provenance checks and tuned-result preservation
 └── tcn_tuning_experiment.py     # validation-based TCN hyperparameter tuning experiment
 ```
