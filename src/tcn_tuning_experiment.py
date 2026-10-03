@@ -1,4 +1,5 @@
 import sys
+import argparse
 from pathlib import Path
 
 import numpy as np
@@ -9,9 +10,14 @@ from torch import nn
 
 if __package__ in {None, ""}:
     sys.path.append(str(Path(__file__).resolve().parents[1]))
+    from result_cache import (
+        experiment_fingerprint, load_cached_results, save_cached_results,
+        tuned_test_fingerprint,
+    )
     from load_data import load_test_data, load_test_rul, load_train_data
     from preprocessing import add_train_rul, create_test_targets
     from predictive_maintenance import (
+        fit_torch_sequence_model,
         RESULTS_DIR,
         RUL_CAP,
         SEQUENCE_STRIDE,
@@ -31,9 +37,14 @@ if __package__ in {None, ""}:
         standardize_sequence_data,
     )
 else:
+    from .result_cache import (
+        experiment_fingerprint, load_cached_results, save_cached_results,
+        tuned_test_fingerprint,
+    )
     from .load_data import load_test_data, load_test_rul, load_train_data
     from .preprocessing import add_train_rul, create_test_targets
     from .predictive_maintenance import (
+        fit_torch_sequence_model,
         RESULTS_DIR,
         RUL_CAP,
         SEQUENCE_STRIDE,
@@ -189,7 +200,8 @@ class TunableTCN(nn.Module):
 
 
 def make_sequence_snapshot_set(
-    data: pd.DataFrame, columns: list[str], stride_multiplier: int = 1
+    data: pd.DataFrame, columns: list[str], stride_multiplier: int = 1,
+    *, cap_targets: bool = True
 ) -> tuple[np.ndarray, np.ndarray]:
     features = []
     targets = []
@@ -203,7 +215,7 @@ def make_sequence_snapshot_set(
 
         for cycle in sorted(target_cycles):
             features.append(sequence_window_array(engine_rows, cycle, columns))
-            targets.append(min(max_cycle - cycle, RUL_CAP))
+            targets.append(min(max_cycle - cycle, RUL_CAP) if cap_targets else max_cycle - cycle)
 
     return np.stack(features), np.array(targets, dtype=float)
 
@@ -249,77 +261,22 @@ def build_model(config: dict[str, object], input_size: int) -> TunableTCN:
 
 
 def fit_tcn_candidate(
-    config: dict[str, object],
-    train_x: np.ndarray,
-    train_y: np.ndarray,
-    max_epochs: int,
-    patience: int,
-) -> tuple[TunableTCN, float, float]:
-    seed = 42
-    torch.manual_seed(seed)
-    torch.set_num_threads(2)
-
-    model = build_model(config, input_size=train_x.shape[-1])
-    optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr=float(config["learning_rate"]),
+    config: dict[str, object], train_x: np.ndarray, train_y: np.ndarray,
+    max_epochs: int, patience: int,
+    *, validation_x: np.ndarray | None = None,
+    validation_y: np.ndarray | None = None,
+) -> tuple[TunableTCN, float, float, int]:
+    return fit_torch_sequence_model(
+        lambda: build_model(config, input_size=train_x.shape[-1]), train_x, train_y,
+        validation_x=validation_x, validation_y=validation_y,
+        max_epochs=max_epochs, patience=patience,
+        learning_rate=float(config["learning_rate"]),
         weight_decay=float(config["weight_decay"]),
+        loss_function=lambda predictions, targets, raw_targets: sequence_loss(
+            predictions, targets, raw_targets,
+            str(config["loss"]), float(config["critical_weight"]),
+        ),
     )
-
-    target_mean = float(train_y.mean())
-    target_std = float(train_y.std() or 1.0)
-    scaled_y = (train_y - target_mean) / target_std
-
-    x_tensor = torch.tensor(train_x, dtype=torch.float32)
-    y_tensor = torch.tensor(scaled_y, dtype=torch.float32)
-    raw_y_tensor = torch.tensor(train_y, dtype=torch.float32)
-
-    sample_count = len(x_tensor)
-    batch_size = min(128, sample_count)
-    best_loss = float("inf")
-    best_state = None
-    stale_epochs = 0
-    rng = np.random.default_rng(seed)
-
-    for _ in range(max_epochs):
-        model.train()
-        indices = rng.permutation(sample_count)
-        epoch_losses = []
-
-        for start in range(0, sample_count, batch_size):
-            batch_indices = indices[start : start + batch_size]
-            predictions = model(x_tensor[batch_indices])
-            loss = sequence_loss(
-                predictions,
-                y_tensor[batch_indices],
-                raw_y_tensor[batch_indices],
-                str(config["loss"]),
-                float(config["critical_weight"]),
-            )
-
-            optimizer.zero_grad()
-            loss.backward()
-            nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            optimizer.step()
-            epoch_losses.append(float(loss.detach()))
-
-        epoch_loss = float(np.mean(epoch_losses))
-        if epoch_loss < best_loss - 1e-4:
-            best_loss = epoch_loss
-            best_state = {
-                key: value.detach().clone() for key, value in model.state_dict().items()
-            }
-            stale_epochs = 0
-        else:
-            stale_epochs += 1
-
-        if stale_epochs >= patience:
-            break
-
-    if best_state is not None:
-        model.load_state_dict(best_state)
-
-    return model, target_mean, target_std
 
 
 def predict_tcn(
@@ -356,15 +313,18 @@ def tune_subset(subset: str) -> tuple[pd.DataFrame, dict[str, object]]:
     columns = sequence_feature_columns(train_data)
 
     train_x, train_y = make_sequence_snapshot_set(model_data, columns)
-    validation_x, validation_y = make_sequence_snapshot_set(validation_data, columns)
+    validation_x, validation_y = make_sequence_snapshot_set(
+        validation_data, columns, cap_targets=False
+    )
     train_x, validation_x = standardize_sequence_data(train_x, validation_x)
     actual = pd.Series(validation_y)
 
     rows = []
     for config in TUNING_CONFIGS:
         print(f"Tuning {subset} TCN: {config['config']}", flush=True)
-        model, target_mean, target_std = fit_tcn_candidate(
-            config, train_x, train_y, max_epochs=45, patience=7
+        model, target_mean, target_std, selected_epochs = fit_tcn_candidate(
+            config, train_x, train_y, max_epochs=45, patience=7,
+            validation_x=validation_x, validation_y=validation_y,
         )
         predictions = predict_tcn(model, validation_x, target_mean, target_std)
         metrics = evaluate_predictions(actual, predictions)
@@ -373,6 +333,7 @@ def tune_subset(subset: str) -> tuple[pd.DataFrame, dict[str, object]]:
                 "subset": subset,
                 **config,
                 "dilations": "-".join(str(value) for value in config["dilations"]),
+                "selected_epochs": selected_epochs,
                 "validation_score": metrics["score"],
                 "validation_mae": metrics["mae"],
                 "validation_rmse": metrics["rmse"],
@@ -406,8 +367,9 @@ def evaluate_best_on_test(
     test_targets = create_test_targets(test_data, test_rul)
     train_x, test_x = standardize_sequence_data(train_x, test_x)
 
-    model, target_mean, target_std = fit_tcn_candidate(
-        best_config, train_x, train_y, max_epochs=80, patience=10
+    model, target_mean, target_std, _ = fit_tcn_candidate(
+        best_config, train_x, train_y,
+        max_epochs=int(best_config["selected_epochs"]), patience=10,
     )
     predictions = predict_tcn(model, test_x, target_mean, target_std)
     actual = test_targets["rul"]
@@ -418,6 +380,7 @@ def evaluate_best_on_test(
         "model": "Tuned TCN Sequence Model",
         "subset": subset,
         "selected_config": best_config["config"],
+        "selected_epochs": int(best_config["selected_epochs"]),
         "train_engines": int(train_data["unit_number"].nunique()),
         "test_engines": int(test_data["unit_number"].nunique()),
         "mae": mean_absolute_error(actual, predictions),
@@ -436,21 +399,34 @@ def evaluate_best_on_test(
     }
 
 
-def main() -> None:
-    RESULTS_DIR.mkdir(exist_ok=True)
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Tune TCNs with engine-level validation")
+    parser.add_argument("--force", action="store_true", help="Recompute tuning and test results")
+    args = parser.parse_args(argv)
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    fingerprint = experiment_fingerprint()
     tuning_path = RESULTS_DIR / "tcn_tuning_results.csv"
 
-    if tuning_path.exists():
-        print(f"Loading saved tuning results from {tuning_path}", flush=True)
-        tuning_results = pd.read_csv(tuning_path)
+    required_tuning_columns = {
+        "subset", "config", "selected_epochs", "validation_score", "validation_mae",
+        "validation_critical_recall", "validation_critical_misses", "hidden_size",
+        "dilations", "dropout", "loss", "critical_weight", "learning_rate", "weight_decay",
+    }
+    tuning_results = None if args.force else load_cached_results(
+        tuning_path, fingerprint, required_tuning_columns
+    )
+    tuning_recomputed = tuning_results is None
+    if tuning_results is not None:
+        print(f"Loading verified tuning results from {tuning_path}", flush=True)
     else:
+        print("Recomputing TCN tuning: cache missing, stale, or --force requested.", flush=True)
         tuning_frames = []
         for subset in SUBSETS:
             subset_results, _ = tune_subset(subset)
             tuning_frames.append(subset_results)
 
         tuning_results = pd.concat(tuning_frames, ignore_index=True)
-        tuning_results.to_csv(tuning_path, index=False)
+        save_cached_results(tuning_results, tuning_path, fingerprint)
 
     selected_configs = [
         subset_results.sort_values("validation_score").iloc[0].to_dict()
@@ -458,16 +434,24 @@ def main() -> None:
     ]
 
     test_path = RESULTS_DIR / "tcn_tuned_test_metrics.csv"
-    if test_path.exists():
-        print(f"Loading saved tuned test results from {test_path}", flush=True)
-        test_results = pd.read_csv(test_path)
-
+    test_fingerprint = tuned_test_fingerprint(fingerprint, tuning_path)
     required_test_columns = {
-        "nasa_score",
-        "actual_critical_engines",
-        "critical_true_positives",
+        "model", "subset", "selected_config", "selected_epochs", "test_engines",
+        "mae", "rmse", "nasa_score", "risk_decision_accuracy", "critical_recall",
+        "actual_critical_engines", "critical_true_positives", "critical_false_negatives",
+        "window_cycles", "window_stride", "training_windows",
     }
-    if not test_path.exists() or not required_test_columns.issubset(test_results.columns):
+    test_results = None if args.force or tuning_recomputed else load_cached_results(
+        test_path, test_fingerprint, required_test_columns
+    )
+    if test_results is not None and (
+        len(test_results) != len(SUBSETS)
+        or set(test_results["model"]) != {"Tuned TCN Sequence Model"}
+    ):
+        test_results = None
+    if test_results is not None:
+        print(f"Loading verified tuned test results from {test_path}", flush=True)
+    else:
         test_metrics = []
         for best_config in selected_configs:
             subset = str(best_config["subset"])
@@ -479,7 +463,7 @@ def main() -> None:
             test_metrics.append(evaluate_best_on_test(subset, best_config))
 
         test_results = pd.DataFrame(test_metrics)
-        test_results.to_csv(test_path, index=False)
+        save_cached_results(test_results, test_path, test_fingerprint)
 
     comparison_path = RESULTS_DIR / "model_comparison.csv"
     if comparison_path.exists():

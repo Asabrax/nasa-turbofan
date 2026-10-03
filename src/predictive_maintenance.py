@@ -2,6 +2,7 @@ import sys
 import json
 from html import escape
 from pathlib import Path
+from collections.abc import Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,6 +14,7 @@ from xgboost import XGBRegressor
 
 if __package__ in {None, ""}:
     sys.path.append(str(Path(__file__).resolve().parents[1]))
+    from result_cache import experiment_fingerprint, merge_tuned_comparison
     from load_data import load_test_data, load_test_rul, load_train_data
     from preprocessing import (
         add_engineered_features,
@@ -25,6 +27,7 @@ if __package__ in {None, ""}:
         risk_level,
     )
 else:
+    from .result_cache import experiment_fingerprint, merge_tuned_comparison
     from .load_data import load_test_data, load_test_rul, load_train_data
     from .preprocessing import (
         add_engineered_features,
@@ -363,7 +366,7 @@ def sequence_window_array(
 
 
 def make_sequence_training_set(
-    data: pd.DataFrame, columns: list[str]
+    data: pd.DataFrame, columns: list[str], *, cap_targets: bool = True
 ) -> tuple[np.ndarray, np.ndarray]:
     features = []
     targets = []
@@ -376,7 +379,7 @@ def make_sequence_training_set(
 
         for cycle in sorted(target_cycles):
             features.append(sequence_window_array(engine_rows, cycle, columns))
-            targets.append(min(max_cycle - cycle, RUL_CAP))
+            targets.append(min(max_cycle - cycle, RUL_CAP) if cap_targets else max_cycle - cycle)
 
     return np.stack(features), np.array(targets, dtype=float)
 
@@ -480,62 +483,81 @@ def standardize_sequence_data(
 
 
 def fit_torch_sequence_model(
-    model: nn.Module, train_x: np.ndarray, train_y: np.ndarray
-) -> tuple[nn.Module, float, float]:
+    model_factory: Callable[[], nn.Module], train_x: np.ndarray, train_y: np.ndarray,
+    *, validation_x: np.ndarray | None = None,
+    validation_y: np.ndarray | None = None,
+    max_epochs: int = 100, patience: int = 12,
+    learning_rate: float = 0.002, weight_decay: float = 0.001,
+    loss_function=None,
+) -> tuple[nn.Module, float, float, int]:
+    """Select a checkpoint on validation engines, or refit for a fixed budget.
+
+    Training targets may be capped; validation targets must be raw RUL.
+    A factory ensures the seed is set before any weights are initialized.
+    With no validation data, all requested epochs run and the final state wins.
+    """
+    if (validation_x is None) != (validation_y is None):
+        raise ValueError("Supply both validation_x and validation_y, or neither")
+    if max_epochs < 1 or patience < 1:
+        raise ValueError("max_epochs and patience must be positive")
     torch.manual_seed(42)
     torch.set_num_threads(2)
-
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.002, weight_decay=0.001)
-    loss_fn = nn.MSELoss()
-
+    model = model_factory()
+    optimizer = torch.optim.AdamW(
+        model.parameters(), lr=learning_rate, weight_decay=weight_decay
+    )
     target_mean = float(train_y.mean())
     target_std = float(train_y.std() or 1.0)
-    scaled_y = (train_y - target_mean) / target_std
-
     x_tensor = torch.tensor(train_x, dtype=torch.float32)
-    y_tensor = torch.tensor(scaled_y, dtype=torch.float32)
+    y_tensor = torch.tensor((train_y - target_mean) / target_std, dtype=torch.float32)
+    raw_y_tensor = torch.tensor(train_y, dtype=torch.float32)
     sample_count = len(x_tensor)
     batch_size = min(128, sample_count)
-    best_loss = float("inf")
+    best_score = float("inf")
     best_state = None
-    patience = 12
+    best_epoch = max_epochs
     stale_epochs = 0
-
     rng = np.random.default_rng(42)
-    for _ in range(100):
+
+    for epoch in range(1, max_epochs + 1):
         model.train()
         indices = rng.permutation(sample_count)
-        epoch_losses = []
-
         for start in range(0, sample_count, batch_size):
             batch_indices = indices[start : start + batch_size]
-            batch_x = x_tensor[batch_indices]
-            batch_y = y_tensor[batch_indices]
-
+            predictions = model(x_tensor[batch_indices])
+            if loss_function is None:
+                loss = nn.functional.mse_loss(predictions, y_tensor[batch_indices])
+            else:
+                loss = loss_function(
+                    predictions, y_tensor[batch_indices], raw_y_tensor[batch_indices]
+                )
             optimizer.zero_grad()
-            loss = loss_fn(model(batch_x), batch_y)
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
-            epoch_losses.append(float(loss.detach()))
 
-        epoch_loss = float(np.mean(epoch_losses))
-        if epoch_loss < best_loss - 1e-4:
-            best_loss = epoch_loss
-            best_state = {
-                key: value.detach().clone() for key, value in model.state_dict().items()
-            }
-            stale_epochs = 0
-        else:
-            stale_epochs += 1
-
-        if stale_epochs >= patience:
-            break
+        if validation_x is not None:
+            predictions = pd.Series(predict_torch_sequence_model(
+                model, validation_x, target_mean, target_std
+            )).clip(lower=0)
+            score = maintenance_validation_score(pd.Series(validation_y), predictions)
+            if not np.isfinite(score):
+                raise ValueError("Non-finite validation score")
+            if score < best_score - 1e-4:
+                best_score = score
+                best_epoch = epoch
+                best_state = {
+                    key: value.detach().clone() for key, value in model.state_dict().items()
+                }
+                stale_epochs = 0
+            else:
+                stale_epochs += 1
+            if stale_epochs >= patience:
+                break
 
     if best_state is not None:
         model.load_state_dict(best_state)
-
-    return model, target_mean, target_std
+    return model, target_mean, target_std, best_epoch
 
 
 def predict_torch_sequence_model(
@@ -548,7 +570,7 @@ def predict_torch_sequence_model(
 
 
 def train_torch_sequence_subset(
-    subset: str, model_name: str, model: nn.Module
+    subset: str, model_name: str, model_factory: Callable[[], nn.Module]
 ) -> tuple[pd.DataFrame, dict[str, float]]:
     print(f"Training {subset}: {SEQUENCE_WINDOW}-cycle {model_name}", flush=True)
     train_data = add_train_rul(load_train_data(subset))
@@ -556,12 +578,27 @@ def train_torch_sequence_subset(
     test_rul = load_test_rul(subset)
     columns = sequence_feature_columns(train_data)
 
+    training_units, validation_units = split_engine_units(train_data)
+    selection_x, selection_y = make_sequence_training_set(
+        train_data[train_data["unit_number"].isin(training_units)], columns
+    )
+    validation_x, validation_y = make_sequence_training_set(
+        train_data[train_data["unit_number"].isin(validation_units)], columns,
+        cap_targets=False,
+    )
+    selection_x, validation_x = standardize_sequence_data(selection_x, validation_x)
+    _, _, _, selected_epochs = fit_torch_sequence_model(
+        model_factory, selection_x, selection_y,
+        validation_x=validation_x, validation_y=validation_y,
+    )
     train_x, train_y = make_sequence_training_set(train_data, columns)
     test_x, test_last_rows = make_sequence_test_set(test_data, columns)
     test_targets = create_test_targets(test_data, test_rul)
 
     train_x, test_x = standardize_sequence_data(train_x, test_x)
-    model, target_mean, target_std = fit_torch_sequence_model(model, train_x, train_y)
+    model, target_mean, target_std, _ = fit_torch_sequence_model(
+        model_factory, train_x, train_y, max_epochs=selected_epochs
+    )
 
     predictions = pd.Series(
         predict_torch_sequence_model(model, test_x, target_mean, target_std)
@@ -585,6 +622,7 @@ def train_torch_sequence_subset(
         "window_cycles": SEQUENCE_WINDOW,
         "window_stride": SEQUENCE_STRIDE,
         "training_windows": int(len(train_y)),
+        "selected_epochs": selected_epochs,
     }
 
     return report, metrics
@@ -592,14 +630,16 @@ def train_torch_sequence_subset(
 
 def train_gru_sequence_subset(subset: str) -> tuple[pd.DataFrame, dict[str, float]]:
     columns = sequence_feature_columns(load_train_data(subset))
-    model = GRURulModel(input_size=len(columns))
-    return train_torch_sequence_subset(subset, "GRU Sequence Model", model)
+    return train_torch_sequence_subset(
+        subset, "GRU Sequence Model", lambda: GRURulModel(input_size=len(columns))
+    )
 
 
 def train_tcn_sequence_subset(subset: str) -> tuple[pd.DataFrame, dict[str, float]]:
     columns = sequence_feature_columns(load_train_data(subset))
-    model = TCNRulModel(input_size=len(columns))
-    return train_torch_sequence_subset(subset, "TCN Sequence Model", model)
+    return train_torch_sequence_subset(
+        subset, "TCN Sequence Model", lambda: TCNRulModel(input_size=len(columns))
+    )
 
 
 def train_subset(
@@ -1546,6 +1586,10 @@ def train_predictive_maintenance_model() -> None:
     sequence_comparison = pd.DataFrame(sequence_metrics)
     model_comparison = pd.concat(
         [xgboost_comparison, sequence_comparison], ignore_index=True
+    )
+
+    model_comparison = merge_tuned_comparison(
+        model_comparison, RESULTS_DIR, experiment_fingerprint()
     )
 
     full_report.to_csv(RESULTS_DIR / "maintenance_report.csv", index=False)
