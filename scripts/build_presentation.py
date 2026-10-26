@@ -415,8 +415,8 @@ md('''
   [first-alert events](outputs/robustness/engine_alert_events.csv).
 - [Sensor audit](outputs/presentation/sensor_audit.csv) and
   [sensor ablation](outputs/presentation/sensor_ablation.csv): all channels and matched CV results.
-- [Final model](outputs/experiments/selected_model.joblib): normalization, causal feature
-  construction, filtering and trained XGBoost. Original model artifacts are preserved.
+- [Reproduction guide](docs/REPRODUCING.md): regenerate the trained model and
+  large prediction exports, which are excluded from Git. Compact report inputs remain included.
 
 This notebook reads saved results; opening or executing it does not train models.
 All model fitting was performed locally. Training scripts and timestamped logs

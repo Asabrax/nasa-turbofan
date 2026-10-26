@@ -21,4 +21,21 @@ Thumbs.db
 .idea/
 .vscode/
 
-# Saved evidence, executed notebooks and model artifacts are intentionally kept.
+
+
+# Local data and regenerated artifacts
+/data/raw/
+/data/processed/
+*.joblib
+*.ubj
+/outputs/*.*
+/outputs/**/notebook_preview.html
+/outputs/**/figure_*.png
+!/outputs/presentation/figure_03.png
+/outputs/experiments/oof_predictions.csv
+/outputs/presentation/sensor_ablation_oof.csv
+/outputs/robustness/heldout_history_predictions.csv
+/outputs/robustness/snapshot_predictions.csv
+/outputs/robustness/scenario_endpoints.csv
+/explore_fd001.ipynb
+/scripts/build_fd001_notebook.py
