@@ -1,0 +1,22 @@
+2026-10-26T20:28:20+00:00 Start fixed-recipe robustness: five engine splits, four planning windows plus broad coverage.
+2026-10-26T20:28:20+00:00 Seed 7: fitting Original recipe on 567 engines; validating 142 engines.
+2026-10-26T20:28:23+00:00 Seed 7, Original recipe: RUL 1–200 RMSE=36.46
+2026-10-26T20:28:23+00:00 Seed 7: fitting Final recipe on 567 engines; validating 142 engines.
+2026-10-26T20:28:39+00:00 Seed 7, Final recipe: RUL 1–200 RMSE=24.32
+2026-10-26T20:28:39+00:00 Seed 19: fitting Original recipe on 567 engines; validating 142 engines.
+2026-10-26T20:28:42+00:00 Seed 19, Original recipe: RUL 1–200 RMSE=35.51
+2026-10-26T20:28:42+00:00 Seed 19: fitting Final recipe on 567 engines; validating 142 engines.
+2026-10-26T20:28:58+00:00 Seed 19, Final recipe: RUL 1–200 RMSE=25.77
+2026-10-26T20:28:58+00:00 Seed 42: fitting Original recipe on 567 engines; validating 142 engines.
+2026-10-26T20:29:01+00:00 Seed 42, Original recipe: RUL 1–200 RMSE=34.44
+2026-10-26T20:29:01+00:00 Seed 42: fitting Final recipe on 567 engines; validating 142 engines.
+2026-10-26T20:29:17+00:00 Seed 42, Final recipe: RUL 1–200 RMSE=26.13
+2026-10-26T20:29:17+00:00 Seed 73: fitting Original recipe on 567 engines; validating 142 engines.
+2026-10-26T20:29:20+00:00 Seed 73, Original recipe: RUL 1–200 RMSE=38.21
+2026-10-26T20:29:20+00:00 Seed 73: fitting Final recipe on 567 engines; validating 142 engines.
+2026-10-26T20:29:36+00:00 Seed 73, Final recipe: RUL 1–200 RMSE=26.09
+2026-10-26T20:29:36+00:00 Seed 101: fitting Original recipe on 567 engines; validating 142 engines.
+2026-10-26T20:29:39+00:00 Seed 101, Original recipe: RUL 1–200 RMSE=36.59
+2026-10-26T20:29:39+00:00 Seed 101: fitting Final recipe on 567 engines; validating 142 engines.
+2026-10-26T20:29:56+00:00 Seed 101, Final recipe: RUL 1–200 RMSE=26.81
+2026-10-26T20:29:57+00:00 COMPLETE in 101.7s; original final model SHA256 unchanged.

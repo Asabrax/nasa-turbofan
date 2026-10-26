@@ -1,0 +1,6 @@
+{
+  "meaning": "reference RMSE minus selected RMSE; paired audit-engine bootstrap",
+  "replicates": 1000,
+  "lower_95": 4.338332038760104,
+  "upper_95": 10.593926938086733
+}

@@ -1,0 +1,31 @@
+population,model,dataset,threshold,metric,estimate,lower95,upper95,numerator,denominator,method
+official_test,Original XGBoost,ALL,30.0,precision,0.948905109489051,0.8982903384900498,0.9750320555685905,130,137,Wilson conditional binomial
+official_test,Original XGBoost,ALL,30.0,recall,0.8176100628930818,0.7503346849781394,0.8699004856684944,130,159,Wilson conditional binomial
+official_test,Original XGBoost,FD001,30.0,precision,1.0,0.8156818649911483,1.0,17,17,Wilson conditional binomial
+official_test,Original XGBoost,FD001,30.0,recall,0.68,0.48410269273102247,0.8279480969309202,17,25,Wilson conditional binomial
+official_test,Original XGBoost,FD002,30.0,precision,0.9642857142857143,0.8788121981950989,0.9901505748517636,54,56,Wilson conditional binomial
+official_test,Original XGBoost,FD002,30.0,recall,0.8852459016393442,0.7815569152759893,0.9432879733926779,54,61,Wilson conditional binomial
+official_test,Original XGBoost,FD003,30.0,precision,1.0,0.8063923194655637,1.0,16,16,Wilson conditional binomial
+official_test,Original XGBoost,FD003,30.0,recall,0.8,0.5839825677481065,0.9193423374202021,16,20,Wilson conditional binomial
+official_test,Original XGBoost,FD004,30.0,precision,0.8958333333333334,0.7783257830561368,0.9546782809581869,43,48,Wilson conditional binomial
+official_test,Original XGBoost,FD004,30.0,recall,0.8113207547169812,0.6864154091329745,0.8941467489231408,43,53,Wilson conditional binomial
+official_test,"Final, fixed alert",ALL,30.0,precision,0.9470198675496688,0.8989468262835141,0.9729126939521453,143,151,Wilson conditional binomial
+official_test,"Final, fixed alert",ALL,30.0,recall,0.89937106918239,0.8427933347715683,0.9371063352494463,143,159,Wilson conditional binomial
+official_test,"Final, fixed alert",FD001,30.0,precision,1.0,0.8453609810751531,1.0,21,21,Wilson conditional binomial
+official_test,"Final, fixed alert",FD001,30.0,recall,0.84,0.6534637839282115,0.9359654854332357,21,25,Wilson conditional binomial
+official_test,"Final, fixed alert",FD002,30.0,precision,0.967741935483871,0.8897953040501456,0.9911086285001833,60,62,Wilson conditional binomial
+official_test,"Final, fixed alert",FD002,30.0,recall,0.9836065573770492,0.9128113995535841,0.9971002692007002,60,61,Wilson conditional binomial
+official_test,"Final, fixed alert",FD003,30.0,precision,1.0,0.8063923194655637,1.0,16,16,Wilson conditional binomial
+official_test,"Final, fixed alert",FD003,30.0,recall,0.8,0.5839825677481065,0.9193423374202021,16,20,Wilson conditional binomial
+official_test,"Final, fixed alert",FD004,30.0,precision,0.8846153846153846,0.7702833565509788,0.946030307969127,46,52,Wilson conditional binomial
+official_test,"Final, fixed alert",FD004,30.0,recall,0.8679245283018868,0.7515974469109508,0.9345214671553674,46,53,Wilson conditional binomial
+official_test,"Final, calibrated alert",ALL,34.438228607177734,precision,0.9254658385093167,0.8742496167888762,0.9568519821664048,149,161,Wilson conditional binomial
+official_test,"Final, calibrated alert",ALL,34.438228607177734,recall,0.9371069182389937,0.8881086353699289,0.9654823420546462,149,159,Wilson conditional binomial
+official_test,"Final, calibrated alert",FD001,34.438228607177734,precision,1.0,0.8620237953250198,1.0,24,24,Wilson conditional binomial
+official_test,"Final, calibrated alert",FD001,34.438228607177734,recall,0.96,0.8045593626380626,0.9929037664980128,24,25,Wilson conditional binomial
+official_test,"Final, calibrated alert",FD002,34.438228607177734,precision,0.9523809523809523,0.8690903216209392,0.9836738311320045,60,63,Wilson conditional binomial
+official_test,"Final, calibrated alert",FD002,34.438228607177734,recall,0.9836065573770492,0.9128113995535841,0.9971002692007002,60,61,Wilson conditional binomial
+official_test,"Final, calibrated alert",FD003,34.438228607177734,precision,0.8947368421052632,0.68605917288891,0.9706414397011298,17,19,Wilson conditional binomial
+official_test,"Final, calibrated alert",FD003,34.438228607177734,recall,0.85,0.6395811352592431,0.9476312541037835,17,20,Wilson conditional binomial
+official_test,"Final, calibrated alert",FD004,34.438228607177734,precision,0.8727272727272727,0.7598297234409093,0.9369578957263536,48,55,Wilson conditional binomial
+official_test,"Final, calibrated alert",FD004,34.438228607177734,recall,0.9056603773584906,0.7974627262370373,0.9590273585027496,48,53,Wilson conditional binomial

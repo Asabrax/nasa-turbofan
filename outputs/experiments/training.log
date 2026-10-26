@@ -1,0 +1,71 @@
+2026-10-26T19:48:50+00:00 Starting controlled local experiments. Official test labels are not used in selection.
+2026-10-26T19:48:53+00:00 567 development engines; 142 untouched audit engines. Three snapshots per engine/protocol.
+2026-10-26T19:48:55+00:00 ablation fold 1/3 reference_raw_uncapped: primary RMSE=33.87, broad=44.12; 2.4s
+2026-10-26T19:48:57+00:00 ablation fold 1/3 raw_cap120: primary RMSE=31.52, broad=56.72; 1.8s
+2026-10-26T19:48:59+00:00 ablation fold 1/3 raw_cap130: primary RMSE=29.83, broad=53.94; 2.0s
+2026-10-26T19:49:01+00:00 ablation fold 1/3 raw_cap150: primary RMSE=28.53, broad=49.93; 1.8s
+2026-10-26T19:49:03+00:00 ablation fold 1/3 regime_uncapped: primary RMSE=32.54, broad=44.23; 2.6s
+2026-10-26T19:49:05+00:00 ablation fold 1/3 regime_cap130: primary RMSE=28.94, broad=53.25; 1.9s
+2026-10-26T19:49:12+00:00 ablation fold 1/3 rich_uncapped: primary RMSE=32.69, broad=43.23; 6.5s
+2026-10-26T19:49:17+00:00 ablation fold 1/3 rich_cap120: primary RMSE=29.98, broad=55.66; 4.8s
+2026-10-26T19:49:21+00:00 ablation fold 1/3 rich_cap130: primary RMSE=28.18, broad=52.68; 4.5s
+2026-10-26T19:49:26+00:00 ablation fold 1/3 rich_cap150: primary RMSE=26.83, broad=48.62; 4.5s
+2026-10-26T19:49:30+00:00 ablation fold 1/3 rich_uncapped_balanced: primary RMSE=30.88, broad=43.07; 4.4s
+2026-10-26T19:49:34+00:00 ablation fold 1/3 rich_uncapped_no_cycle: primary RMSE=34.74, broad=43.02; 4.3s
+2026-10-26T19:49:39+00:00 ablation fold 1/3 rich_uncapped_asymmetric: primary RMSE=31.04, broad=42.60; 4.7s
+2026-10-26T19:49:48+00:00 ablation fold 1/3 separate_uncapped: primary RMSE=33.76, broad=43.87; 9.1s
+2026-10-26T19:49:53+00:00 ablation fold 1/3 rich_cap130_balanced: primary RMSE=28.47, broad=53.27; 4.5s
+2026-10-26T19:49:57+00:00 ablation fold 1/3 rich_cap130_no_cycle: primary RMSE=29.61, broad=53.65; 4.5s
+2026-10-26T19:50:02+00:00 ablation fold 1/3 rich_cap130_asymmetric: primary RMSE=28.58, broad=53.37; 4.7s
+2026-10-26T19:50:11+00:00 ablation fold 1/3 separate_cap130: primary RMSE=28.45, broad=52.84; 9.1s
+2026-10-26T19:50:13+00:00 ablation fold 2/3 reference_raw_uncapped: primary RMSE=38.21, broad=41.55; 2.3s
+2026-10-26T19:50:15+00:00 ablation fold 2/3 raw_cap120: primary RMSE=30.02, broad=50.24; 1.8s
+2026-10-26T19:50:17+00:00 ablation fold 2/3 raw_cap130: primary RMSE=28.19, broad=47.28; 1.8s
+2026-10-26T19:50:19+00:00 ablation fold 2/3 raw_cap150: primary RMSE=26.90, broad=43.15; 1.8s
+2026-10-26T19:50:21+00:00 ablation fold 2/3 regime_uncapped: primary RMSE=38.22, broad=40.46; 2.5s
+2026-10-26T19:50:23+00:00 ablation fold 2/3 regime_cap130: primary RMSE=27.23, broad=46.89; 1.8s
+2026-10-26T19:50:29+00:00 ablation fold 2/3 rich_uncapped: primary RMSE=37.45, broad=39.69; 5.8s
+2026-10-26T19:50:33+00:00 ablation fold 2/3 rich_cap120: primary RMSE=28.97, broad=49.52; 4.4s
+2026-10-26T19:50:38+00:00 ablation fold 2/3 rich_cap130: primary RMSE=26.88, broad=46.46; 4.6s
+2026-10-26T19:50:42+00:00 ablation fold 2/3 rich_cap150: primary RMSE=25.43, broad=42.20; 4.4s
+2026-10-26T19:50:46+00:00 ablation fold 2/3 rich_uncapped_balanced: primary RMSE=35.05, broad=38.70; 4.3s
+2026-10-26T19:50:51+00:00 ablation fold 2/3 rich_uncapped_no_cycle: primary RMSE=40.98, broad=44.41; 4.7s
+2026-10-26T19:50:56+00:00 ablation fold 2/3 rich_uncapped_asymmetric: primary RMSE=35.80, broad=38.64; 5.1s
+2026-10-26T19:51:05+00:00 ablation fold 2/3 separate_uncapped: primary RMSE=37.44, broad=42.42; 8.5s
+2026-10-26T19:51:09+00:00 ablation fold 2/3 rich_cap130_balanced: primary RMSE=27.22, broad=46.59; 4.3s
+2026-10-26T19:51:13+00:00 ablation fold 2/3 rich_cap130_no_cycle: primary RMSE=28.69, broad=48.26; 4.2s
+2026-10-26T19:51:18+00:00 ablation fold 2/3 rich_cap130_asymmetric: primary RMSE=27.18, broad=46.68; 5.0s
+2026-10-26T19:51:27+00:00 ablation fold 2/3 separate_cap130: primary RMSE=27.13, broad=47.18; 8.8s
+2026-10-26T19:51:29+00:00 ablation fold 3/3 reference_raw_uncapped: primary RMSE=37.71, broad=46.35; 2.4s
+2026-10-26T19:51:31+00:00 ablation fold 3/3 raw_cap120: primary RMSE=30.70, broad=53.82; 1.8s
+2026-10-26T19:51:33+00:00 ablation fold 3/3 raw_cap130: primary RMSE=29.16, broad=50.67; 1.8s
+2026-10-26T19:51:35+00:00 ablation fold 3/3 raw_cap150: primary RMSE=28.19, broad=46.33; 1.9s
+2026-10-26T19:51:38+00:00 ablation fold 3/3 regime_uncapped: primary RMSE=37.63, broad=44.66; 2.6s
+2026-10-26T19:51:40+00:00 ablation fold 3/3 regime_cap130: primary RMSE=28.62, broad=50.46; 2.0s
+2026-10-26T19:51:46+00:00 ablation fold 3/3 rich_uncapped: primary RMSE=38.06, broad=44.84; 6.5s
+2026-10-26T19:51:50+00:00 ablation fold 3/3 rich_cap120: primary RMSE=29.35, broad=53.07; 4.5s
+2026-10-26T19:51:55+00:00 ablation fold 3/3 rich_cap130: primary RMSE=27.72, broad=49.78; 4.7s
+2026-10-26T19:52:00+00:00 ablation fold 3/3 rich_cap150: primary RMSE=26.49, broad=45.08; 4.7s
+2026-10-26T19:52:04+00:00 ablation fold 3/3 rich_uncapped_balanced: primary RMSE=35.03, broad=42.85; 4.6s
+2026-10-26T19:52:09+00:00 ablation fold 3/3 rich_uncapped_no_cycle: primary RMSE=41.09, broad=48.83; 4.5s
+2026-10-26T19:52:14+00:00 ablation fold 3/3 rich_uncapped_asymmetric: primary RMSE=36.25, broad=43.61; 5.0s
+2026-10-26T19:52:23+00:00 ablation fold 3/3 separate_uncapped: primary RMSE=39.48, broad=48.32; 8.9s
+2026-10-26T19:52:27+00:00 ablation fold 3/3 rich_cap130_balanced: primary RMSE=27.83, broad=50.01; 4.3s
+2026-10-26T19:52:31+00:00 ablation fold 3/3 rich_cap130_no_cycle: primary RMSE=29.76, broad=51.62; 4.2s
+2026-10-26T19:52:36+00:00 ablation fold 3/3 rich_cap130_asymmetric: primary RMSE=27.89, broad=50.05; 4.6s
+2026-10-26T19:52:44+00:00 ablation fold 3/3 separate_cap130: primary RMSE=28.10, broad=50.34; 8.5s
+2026-10-26T19:52:45+00:00 Feature/target selection: rich_cap150. Now run predeclared small depth/rounds grid on that configuration.
+2026-10-26T19:52:51+00:00 tuning fold 1/3 tuned_d4_n600: primary RMSE=27.28, broad=48.66; 6.3s
+2026-10-26T19:53:01+00:00 tuning fold 1/3 tuned_d6_n800: primary RMSE=26.38, broad=48.57; 10.5s
+2026-10-26T19:53:21+00:00 tuning fold 1/3 tuned_d8_n600: primary RMSE=26.72, broad=48.56; 19.5s
+2026-10-26T19:53:27+00:00 tuning fold 2/3 tuned_d4_n600: primary RMSE=25.55, broad=42.11; 6.2s
+2026-10-26T19:53:38+00:00 tuning fold 2/3 tuned_d6_n800: primary RMSE=25.21, broad=42.01; 10.6s
+2026-10-26T19:53:57+00:00 tuning fold 2/3 tuned_d8_n600: primary RMSE=25.37, broad=42.18; 19.4s
+2026-10-26T19:54:03+00:00 tuning fold 3/3 tuned_d4_n600: primary RMSE=26.75, broad=45.40; 6.4s
+2026-10-26T19:54:14+00:00 tuning fold 3/3 tuned_d6_n800: primary RMSE=26.18, broad=45.13; 10.8s
+2026-10-26T19:54:34+00:00 tuning fold 3/3 tuned_d8_n600: primary RMSE=26.22, broad=45.39; 19.7s
+2026-10-26T19:54:35+00:00 FROZEN: tuned_d6_n800; maintenance threshold 34.438 chosen using OOF predictions only.
+2026-10-26T19:54:38+00:00 Untouched audit reference: primary RMSE=33.01
+2026-10-26T19:54:54+00:00 Untouched audit selected: primary RMSE=25.67
+2026-10-26T19:54:54+00:00 Refitting frozen selected configuration on every row of all 709 training engines.
+2026-10-26T19:55:16+00:00 COMPLETE in 386.0s. Final uncapped test RMSE=22.634

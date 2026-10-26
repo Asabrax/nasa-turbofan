@@ -1,0 +1,46 @@
+{
+  "seeds": [
+    7,
+    19,
+    42,
+    73,
+    101
+  ],
+  "planning_windows": [
+    100,
+    150,
+    200,
+    250
+  ],
+  "threshold": 34.438228607177734,
+  "reference_config": {
+    "normalize": false,
+    "rich": false,
+    "cap": null,
+    "balanced": false,
+    "cycle": true,
+    "asymmetric": false,
+    "separate": false,
+    "depth": 6,
+    "trees": 300,
+    "learning_rate": 0.05,
+    "name": "reference_raw_uncapped"
+  },
+  "selected_config": {
+    "normalize": true,
+    "rich": true,
+    "cap": 150,
+    "balanced": false,
+    "cycle": true,
+    "asymmetric": false,
+    "separate": false,
+    "depth": 6,
+    "trees": 800,
+    "learning_rate": 0.03,
+    "name": "tuned_d6_n800"
+  },
+  "monitor_from_cycle": 20,
+  "last_monitored_RUL": 1,
+  "model_sha256_before": "bbc9b52f50b7f4548465d7fb348960713d7597f9d82673a805ebadf8039c3ae5",
+  "policy": "Sensitivity analysis of fixed recipes; no reselection or threshold recalibration. Repeated splits overlap and are not independent external replications."
+}

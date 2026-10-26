@@ -1,0 +1,19 @@
+{
+  "selected_config": {
+    "normalize": true,
+    "rich": true,
+    "cap": 150,
+    "balanced": false,
+    "cycle": true,
+    "asymmetric": false,
+    "separate": false,
+    "depth": 6,
+    "trees": 800,
+    "learning_rate": 0.03,
+    "name": "tuned_d6_n800"
+  },
+  "alert_threshold": 34.438228607177734,
+  "target_recall": 0.9,
+  "selection_metric": "uncapped pooled primary-endpoint OOF RMSE",
+  "frozen_at_utc": "2026-10-26T19:54:35.588235+00:00"
+}

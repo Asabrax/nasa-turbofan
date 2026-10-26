@@ -1,0 +1,93 @@
+{
+  "excluded_sensors_candidate": [
+    "sensor_1",
+    "sensor_5",
+    "sensor_6",
+    "sensor_10",
+    "sensor_16",
+    "sensor_18",
+    "sensor_19"
+  ],
+  "current_removed_sensors": [
+    "sensor_1",
+    "sensor_5",
+    "sensor_18",
+    "sensor_19"
+  ],
+  "current_sensor_count": 17,
+  "candidate_sensor_count": 14,
+  "current_feature_count": 127,
+  "candidate_feature_count_before_variance_filter": 106,
+  "seconds": 31.990417286986485,
+  "metrics": [
+    {
+      "model": "Current model: 17 retained sensors",
+      "protocol": "primary",
+      "n": 1701,
+      "RMSE": 25.931531863969386,
+      "MAE": 19.20098798293215,
+      "bias": -0.7050917570483047,
+      "NASA_score_sum": 47903.99752025858,
+      "NASA_score_mean": 28.16225603777694,
+      "threshold": 30.0,
+      "precision": 0.9333333333333333,
+      "recall": 0.8122866894197952,
+      "TP": 238,
+      "FP": 17,
+      "FN": 55,
+      "TN": 1391
+    },
+    {
+      "model": "Current model: 17 retained sensors",
+      "protocol": "broad",
+      "n": 1701,
+      "RMSE": 45.317408819588124,
+      "MAE": 28.079466726904684,
+      "bias": -10.087583205967633,
+      "NASA_score_sum": 1304355921.0210073,
+      "NASA_score_mean": 766817.1199418033,
+      "threshold": 30.0,
+      "precision": 0.9253112033195021,
+      "recall": 0.832089552238806,
+      "TP": 223,
+      "FP": 18,
+      "FN": 45,
+      "TN": 1415
+    },
+    {
+      "model": "Reduced model: 14 sensors",
+      "protocol": "primary",
+      "n": 1701,
+      "RMSE": 25.95808284047136,
+      "MAE": 19.27104394240792,
+      "bias": -0.7000049650187284,
+      "NASA_score_sum": 47527.06246726832,
+      "NASA_score_mean": 27.940659886695073,
+      "threshold": 30.0,
+      "precision": 0.9486166007905138,
+      "recall": 0.8191126279863481,
+      "TP": 240,
+      "FP": 13,
+      "FN": 53,
+      "TN": 1395
+    },
+    {
+      "model": "Reduced model: 14 sensors",
+      "protocol": "broad",
+      "n": 1701,
+      "RMSE": 45.21584769029802,
+      "MAE": 28.024523950443065,
+      "bias": -9.945521489617967,
+      "NASA_score_sum": 1323880818.208911,
+      "NASA_score_mean": 778295.6015337512,
+      "threshold": 30.0,
+      "precision": 0.9224489795918367,
+      "recall": 0.8432835820895522,
+      "TP": 226,
+      "FP": 19,
+      "FN": 42,
+      "TN": 1414
+    }
+  ],
+  "policy": "Diagnostic development-only ablation. Existing final model and official test results are unchanged."
+}

@@ -1,0 +1,7 @@
+model,metric,threshold,estimate,lower95,upper95,engines,method
+Original recipe,precision,30.0,0.9041095890410958,0.8235107967237527,0.971830985915493,142,2000 whole-engine percentile bootstrap draws
+Original recipe,recall,30.0,0.7333333333333333,0.6444391025641026,0.8160919540229885,142,2000 whole-engine percentile bootstrap draws
+"Final, fixed alert",precision,30.0,0.8987341772151899,0.8266521739130435,0.9605391319207108,142,2000 whole-engine percentile bootstrap draws
+"Final, fixed alert",recall,30.0,0.7888888888888889,0.7073170731707317,0.8674864292334171,142,2000 whole-engine percentile bootstrap draws
+"Final, calibrated alert",precision,34.438228607177734,0.8901098901098901,0.8217733380480905,0.9506470325747433,142,2000 whole-engine percentile bootstrap draws
+"Final, calibrated alert",recall,34.438228607177734,0.9,0.8333333333333334,0.956055900621118,142,2000 whole-engine percentile bootstrap draws

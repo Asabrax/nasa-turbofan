@@ -1,9 +1,24 @@
-myProjk/
+# Local Python environments
+/nasa/
+/.venv/
+/venv/
+/env/
+
+# Python and notebook caches
 __pycache__/
 *.py[cod]
+.ipynb_checkpoints/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local credentials and editor / OS files
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+.idea/
 .vscode/
 
-data/raw/
-local_notes/
-.DS_Store
+# Saved evidence, executed notebooks and model artifacts are intentionally kept.

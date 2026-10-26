@@ -1,0 +1,124 @@
+{
+  "dataset": "NASA C-MAPSS Turbofan Engine Degradation Simulation",
+  "source_page": "https://data.nasa.gov/dataset/cmapss-jet-engine-simulated-data",
+  "original_download_url": "https://data.nasa.gov/docs/legacy/CMAPSSData.zip",
+  "current_nasa_linked_download_url": "https://phm-datasets.s3.amazonaws.com/NASA/6.+Turbofan+Engine+Degradation+Simulation+Data+Set.zip",
+  "acquisition": "Fresh downloads failed: workspace DNS could not resolve either host. Extracted existing archived ZIP; not compared with a fresh remote copy.",
+  "archive_path": "/home/alex/projects/nasa-turbofan-archive-20261014-141655/data/raw/CMAPSSData.zip",
+  "prepared_date": "2026-10-14",
+  "validation": "ZIP CRC check passed; all twelve inputs checked for schema, finite values, engine/cycle keys, contiguous cycles and test RUL alignment.",
+  "files": {
+    "data/raw/CMAPSSData.zip": {
+      "bytes": 12425978,
+      "sha256": "74bef434a34db25c7bf72e668ea4cd52afe5f2cf8e44367c55a82bfd91a5a34f"
+    },
+    "data/raw/Damage Propagation Modeling.pdf": {
+      "bytes": 434158,
+      "sha256": "e7aaef80c177333f400a4c1099fe76e67d244569b9397c937ec4cd3ed5b44a27"
+    },
+    "data/raw/RUL_FD001.txt": {
+      "bytes": 429,
+      "sha256": "a19c8ec94931949d0485bdc35118206e9c81c4547b422efb9cf86f4ceddbceca"
+    },
+    "data/raw/RUL_FD002.txt": {
+      "bytes": 1110,
+      "sha256": "c851dd96a6ea6998d3c4a8f834d3c8013aa90e93a6ed950dc826ad0655b2906b"
+    },
+    "data/raw/RUL_FD003.txt": {
+      "bytes": 428,
+      "sha256": "df1e0566306b174a2de41c67a3e7a51877889598b78643fc3e5685259091b7cb"
+    },
+    "data/raw/RUL_FD004.txt": {
+      "bytes": 1084,
+      "sha256": "196b836b85a95ac7fdbbf29c5fdf1657382eafa445644d114ffaaf50dc2975e1"
+    },
+    "data/raw/readme.txt": {
+      "bytes": 2442,
+      "sha256": "4f5270554b775c67e73aff383c5436fd329d6e4cc3d3a116913276fae511269b"
+    },
+    "data/raw/test_FD001.txt": {
+      "bytes": 2228855,
+      "sha256": "3cda7109ce17bafb5443f2ac926cfcf88154b941b8c4cf95eb55d1ddd6f52851"
+    },
+    "data/raw/test_FD002.txt": {
+      "bytes": 5734587,
+      "sha256": "de7b5bf7e998a985c378488480528b7c02cff1406a46740def362dda8d9b4e02"
+    },
+    "data/raw/test_FD003.txt": {
+      "bytes": 2826651,
+      "sha256": "299babd63c8d987cef079c4a425429f33b3a34797d803bbe2ad48c29dbd0d790"
+    },
+    "data/raw/test_FD004.txt": {
+      "bytes": 6957759,
+      "sha256": "1dc675fff0624bac10786927c6715b37d1297657137400d2b1a3138d777a3ba5"
+    },
+    "data/raw/train_FD001.txt": {
+      "bytes": 3515356,
+      "sha256": "963b5e22825b34d8b21c69e1aeb4af3e647050eb672ee8834ba4b5d91d2de0f8"
+    },
+    "data/raw/train_FD002.txt": {
+      "bytes": 9082480,
+      "sha256": "dac6c4dbc4e7c1bdeb5747da3d313d05c395bb99801b44a002b26a2ba13d788f"
+    },
+    "data/raw/train_FD003.txt": {
+      "bytes": 4213862,
+      "sha256": "2abbe9968cc5e8eb091980f51b20f62bb4127336d3482cb52071d53bf23329e2"
+    },
+    "data/raw/train_FD004.txt": {
+      "bytes": 10350705,
+      "sha256": "27ef6160b6a1dcb2613a88de9c239f763b223f02cdc41dc5cdedc5dc189b6218"
+    },
+    "data/interim/RUL_FD001.csv": {
+      "bytes": 1863,
+      "sha256": "e14b5c83bd3d1e98611a3ea8b1aebe6b184220eef7e3dad7dbcda480559bc3e8"
+    },
+    "data/interim/RUL_FD002.csv": {
+      "bytes": 4929,
+      "sha256": "85776112732fc46613c463cef1421787ff7e7d3a2927210e204bd0edf6d4210d"
+    },
+    "data/interim/RUL_FD003.csv": {
+      "bytes": 1862,
+      "sha256": "5d1aed50da9476b8ce56a064e8b7cfabe3cd6242227f0b60e96b5cd235cca5d2"
+    },
+    "data/interim/RUL_FD004.csv": {
+      "bytes": 4738,
+      "sha256": "ff367f48e0e581d70f27cf7f53b65554e8f2d79557089df17840f4f986c30dd1"
+    },
+    "data/interim/dataset_summary.csv": {
+      "bytes": 314,
+      "sha256": "a87f5445a49b29d87348ff2e399df79838a8f6ab306797c7b5c00da92b7c56a0"
+    },
+    "data/interim/test_FD001.csv": {
+      "bytes": 2360076,
+      "sha256": "cd000116d9fe8a326588939478ff85cabc730f434294b190b31a99cb6ea94a77"
+    },
+    "data/interim/test_FD002.csv": {
+      "bytes": 6074758,
+      "sha256": "09a1f9e8c77b61e00d7f7d403456ab524c0dcf3c4d93a9ef1cd2fa4f88e274ab"
+    },
+    "data/interim/test_FD003.csv": {
+      "bytes": 2992872,
+      "sha256": "e9b6f3a59be5cd30b040192840467cce7408b3237a957c986eeec6b5e24f4f91"
+    },
+    "data/interim/test_FD004.csv": {
+      "bytes": 7370160,
+      "sha256": "02e67b6381e123b993d5d7023a23499624710ca771fda8afffab1ca65f96e3e7"
+    },
+    "data/interim/train_FD001.csv": {
+      "bytes": 3742558,
+      "sha256": "e5202e52b6f6c31c011ec7e8ca9a11bea4b40a72bd048c5b23be3b27bd9b2346"
+    },
+    "data/interim/train_FD002.csv": {
+      "bytes": 9674090,
+      "sha256": "306d4d8be61f161d2e71f121fbd6a129d3745cab53b5f0d12ccb52b7fd28b67d"
+    },
+    "data/interim/train_FD003.csv": {
+      "bytes": 4486043,
+      "sha256": "9b3d189a43833a6aea2fbb258424a2f107c82c373f7edd4a18dfe13566b6da3d"
+    },
+    "data/interim/train_FD004.csv": {
+      "bytes": 11024705,
+      "sha256": "d29841aaede349e9888efe2f8a7ff551707183a0a8a7ac03e6a9b32564e5a38a"
+    }
+  }
+}
