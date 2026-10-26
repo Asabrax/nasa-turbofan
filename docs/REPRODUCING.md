@@ -2,11 +2,12 @@
 
 ## Read or rebuild the presentation
 
+Edit `explore.ipynb`, `baseline.ipynb` and `experiments.ipynb` directly;
+the notebooks are the source documents, with no separate generation scripts.
 The main `explore.ipynb` reads small tracked result tables. It does not train.
 From the repository root, after installing `requirements.txt`:
 
 ```bash
-./nasa/bin/python scripts/build_presentation.py
 ./nasa/bin/python scripts/execute_notebook.py
 ./nasa/bin/python scripts/render_presentation.py
 ```

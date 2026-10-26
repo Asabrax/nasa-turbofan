@@ -62,7 +62,6 @@ From the repository root:
 ```bash
 ./nasa/bin/python scripts/run_robustness.py
 ./nasa/bin/python scripts/verify_robustness.py
-./nasa/bin/python scripts/build_presentation.py
 ./nasa/bin/python scripts/execute_notebook.py
 ./nasa/bin/python scripts/render_presentation.py
 ```
