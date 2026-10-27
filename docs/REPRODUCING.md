@@ -1,5 +1,16 @@
 # Reproducing the study
 
+## Script guide
+
+| Area | Scripts | Purpose |
+| --- | --- | --- |
+| Data setup | [`prepare_data.py`](../scripts/prepare_data.py) | Import the twelve checksum-verified dataset files. |
+| Training and experiments | [`train_all.py`](../scripts/train_all.py), [`run_experiments.py`](../scripts/run_experiments.py) | Train the original baselines and compare improved model configurations. |
+| Model implementation | [`experiment_models.py`](../scripts/experiment_models.py) | Shared normalization, temporal features and estimators; imported by the experiment scripts. |
+| Additional experiments | [`audit_sensors.py`](../scripts/audit_sensors.py), [`run_robustness.py`](../scripts/run_robustness.py) | Compare sensor sets and evaluate fixed recipes across engine splits, planning windows and alert histories. |
+| Verification | [`check_experiments.py`](../scripts/check_experiments.py), [`verify_experiment_results.py`](../scripts/verify_experiment_results.py), [`verify_robustness.py`](../scripts/verify_robustness.py) | Check feature isolation and independently verify saved experiment and robustness results. |
+| Notebook rendering | [`execute_notebook.py`](../scripts/execute_notebook.py), [`render_presentation.py`](../scripts/render_presentation.py) | Execute a notebook and render the main presentation as HTML. |
+
 ## Read or rebuild the presentation
 
 Edit `explore.ipynb`, `baseline.ipynb` and `experiments.ipynb` directly;
