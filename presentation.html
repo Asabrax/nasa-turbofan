@@ -12,7 +12,7 @@ figure{margin:26px 0;padding:12px 0}img{display:block;width:100%;height:auto}.ta
 @media(min-width:1550px){main{margin-left:calc(260px + (100vw - 1420px)/2)}}
 @media(max-width:1000px){.sidebar{position:static;width:auto;padding:18px 24px;border-right:0;border-bottom:1px solid var(--line)}nav{display:none}.brand{margin:0}main{margin:0;padding:28px 24px}h1{font-size:36px}h2{font-size:25px}body{font-size:16px}}
 @media print{body{background:white;font-size:11pt}.sidebar,.code{display:none}main{margin:0;padding:0;max-width:none}h1{font-size:28pt}h2{font-size:20pt;break-before:page;margin-top:0}figure,table{break-inside:avoid}a{color:inherit;text-decoration:none}}
-</style></head><body><aside class="sidebar"><div class="brand">Predictive maintenance<br>NASA C-MAPSS</div><nav aria-label="Presentation sections"><a href="#1-the-decision-inspect-now-or-keep-operating">1. The decision: inspect now, or keep operating?</a><a href="#2-the-evidence-four-datasets-all-available-engines">2. The evidence: four datasets, all available engines</a><a href="#3-a-fair-comparison-keep-engines-separate">3. A fair comparison: keep engines separate</a><a href="#4-are-all-21-sensors-useful">4. Are all 21 sensors useful?</a><a href="#5-what-changed-in-the-winning-pipeline">5. What changed in the winning pipeline?</a><a href="#6-final-test-result-lower-error-across-all-four-datasets">6. Final test result: lower error across all four datasets</a><a href="#7-maintenance-alerts-make-the-precision-recall-tradeoff-explicit">7. Maintenance alerts: make the precision–recall tradeoff explicit</a><a href="#8-the-result-has-a-boundary">8. The result has a boundary</a><a href="#9-does-the-gain-survive-different-splits-and-windows">9. Does the gain survive different splits and windows?</a><a href="#10-how-uncertain-are-the-alert-results">10. How uncertain are the alert results?</a><a href="#11-when-does-the-first-alert-arrive">11. When does the first alert arrive?</a><a href="#12-what-we-can-defend-and-what-comes-next">12. What we can defend—and what comes next</a><a href="#appendix-evidence-and-reproduction">Appendix · Evidence and reproduction</a></nav></aside><main><div class="narrative"><h1>Predicting when an engine needs maintenance</h1>
+</style></head><body><aside class="sidebar"><div class="brand">Predictive maintenance<br>NASA C-MAPSS</div><nav aria-label="Presentation sections"><a href="#1-the-decision-inspect-now-or-keep-operating">1. The decision: inspect now, or keep operating?</a><a href="#2-the-evidence-four-datasets-all-available-engines">2. The evidence: four datasets, all available engines</a><a href="#3-a-fair-comparison-keep-engines-separate">3. A fair comparison: keep engines separate</a><a href="#4-are-all-21-sensors-useful">4. Are all 21 sensors useful?</a><a href="#5-what-changed-in-the-winning-pipeline">5. What changed in the winning pipeline?</a><a href="#6-final-test-result-lower-error-across-all-four-datasets">6. Final test result: lower error across all four datasets</a><a href="#7-maintenance-alerts-make-the-precision-recall-tradeoff-explicit">7. Maintenance alerts: make the precision–recall tradeoff explicit</a><a href="#8-the-result-has-a-boundary">8. The result has a boundary</a><a href="#9-does-the-gain-survive-different-splits-and-windows">9. Does the gain survive different splits and windows?</a><a href="#10-how-uncertain-are-the-alert-results">10. How uncertain are the alert results?</a><a href="#11-when-does-the-first-alert-arrive">11. When does the first alert arrive?</a><a href="#12-do-sequence-models-improve-this-comparison">12. Do sequence models improve this comparison?</a><a href="#13-what-we-can-defend-and-what-comes-next">13. What we can defend—and what comes next</a><a href="#appendix-evidence-and-reproduction">Appendix · Evidence and reproduction</a></nav></aside><main><div class="narrative"><h1>Predicting when an engine needs maintenance</h1>
 <h3>NASA C-MAPSS · Applied machine learning</h3>
 <p><strong>22.63-cycle test RMSE — 31.7% below our previous best model.</strong></p>
 <p>A controlled study of 709 training engines across four operating/fault scenarios.
@@ -560,7 +560,90 @@ it is not a reliability guarantee.</p>
 change the subsequent trajectory. Repeated warnings and inspection costs still
 need an intervention policy. Engines recur across splits, so the chart averages
 split proportions rather than claiming 710 independent engines.</p>
-<h2 id="12-what-we-can-defend-and-what-comes-next">12. What we can defend—and what comes next</h2>
+</div><div class="narrative"><h2 id="12-do-sequence-models-improve-this-comparison">12. Do sequence models improve this comparison?</h2>
+<p>We trained a compact <strong>LSTM</strong> and <strong>TCN</strong> locally using 30-cycle sensor histories,
+two random seeds and the same three development-engine folds and evaluation
+endpoints as XGBoost. Each outer training fold has a separate inner engine split
+for early stopping; the network is then refitted on all outer fitting engines
+before scoring the outer validation engines.</p>
+<p>The table reports <strong>development CV</strong>, not the official test. Targets are capped
+only during training; evaluation labels remain uncapped. Both primary and broad
+protocols use 1,701 endpoints from the same 567 development engines per seed.</p>
+</div><details class="code"><summary>View reproducible code</summary><pre><code>seq=pd.read_csv(ROOT/&#x27;outputs/sequences/metrics.csv&#x27;)
+reference=pd.read_csv(ROOT/&#x27;outputs/sequences/xgboost_reference.csv&#x27;).set_index(&#x27;protocol&#x27;)
+rows=[{&#x27;Model&#x27;:&#x27;XGBoost&#x27;,&#x27;Seed&#x27;:&#x27;42 (existing)&#x27;,&#x27;Primary RMSE&#x27;:reference.loc[&#x27;primary&#x27;,&#x27;RMSE&#x27;],&#x27;Broad RMSE&#x27;:reference.loc[&#x27;broad&#x27;,&#x27;RMSE&#x27;]}]
+for (model,seed),group in seq.groupby([&#x27;model&#x27;,&#x27;seed&#x27;]):
+    group=group.set_index(&#x27;protocol&#x27;)
+    rows.append({&#x27;Model&#x27;:model,&#x27;Seed&#x27;:str(seed),&#x27;Primary RMSE&#x27;:group.loc[&#x27;primary&#x27;,&#x27;RMSE&#x27;],&#x27;Broad RMSE&#x27;:group.loc[&#x27;broad&#x27;,&#x27;RMSE&#x27;]})
+display(pd.DataFrame(rows).set_index([&#x27;Model&#x27;,&#x27;Seed&#x27;]).round(2).rename_axis(index=[None,None],columns=None))</code></pre></details><div class="table-wrap"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th></th>
+      <th>Primary RMSE</th>
+      <th>Broad RMSE</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>XGBoost</th>
+      <th>42 (existing)</th>
+      <td>25.93</td>
+      <td>45.32</td>
+    </tr>
+    <tr>
+      <th rowspan="2" valign="top">LSTM</th>
+      <th>42</th>
+      <td>26.43</td>
+      <td>45.69</td>
+    </tr>
+    <tr>
+      <th>73</th>
+      <td>26.63</td>
+      <td>45.81</td>
+    </tr>
+    <tr>
+      <th rowspan="2" valign="top">TCN</th>
+      <th>42</th>
+      <td>26.02</td>
+      <td>45.75</td>
+    </tr>
+    <tr>
+      <th>73</th>
+      <td>26.19</td>
+      <td>45.84</td>
+    </tr>
+  </tbody>
+</table>
+</div></div><div class="narrative"><p><strong>Result:</strong> neither tested sequence configuration improves pooled primary RMSE,
+but all paired 95% intervals include zero; this does not establish a clear
+accuracy advantage for either family. At the same threshold of 30, TCN recall
+is <strong>62.8–70.3%</strong>, versus <strong>81.2%</strong> for XGBoost, with higher precision. Similar
+RMSE does not imply equivalent alert behavior. No neural threshold was calibrated.</p>
+<p>This is a bounded comparison of specific model configurations, not a ranking
+of all tree and neural methods. XGBoost was tuned in earlier experiments; the
+networks received one fixed architecture each and a maximum of 20 inner-training
+epochs. Two random seeds are not independent samples of new engines. The
+existing final XGBoost model and its official test predictions remain unchanged.</p>
+<p><a href="outputs/sequences/METHODS.md">Sequence methods</a> include architecture details,
+<a href="outputs/sequences/paired_comparison.csv">paired comparisons</a>,
+<a href="outputs/sequences/learning_curves.csv">training curves</a>, and
+<a href="outputs/sequences/generalization_gaps.csv">matched-protocol training/validation errors</a>.</p>
+</div><div class="narrative"><h2 id="13-what-we-can-defend-and-what-comes-next">13. What we can defend—and what comes next</h2>
 <p><strong>Supported:</strong> lower planning-window error across the tested splits and horizons,
 an explicit sensor ablation, uncertainty estimates for snapshot alerts, and a
 measured first-alert tradeoff on simulated held-out histories.</p>
@@ -578,6 +661,7 @@ provide stronger evidence than further tuning on this already-observed benchmark
 <li><a href="outputs/robustness/METHODS.md">Robustness methods</a>, <a href="outputs/robustness/split_metrics.csv">split metrics</a>,
 <a href="outputs/robustness/test_alert_intervals.csv">alert intervals</a> and
 <a href="outputs/robustness/engine_alert_events.csv">first-alert events</a>.</li>
+<li><a href="outputs/sequences/METHODS.md">Sequence comparison</a>: LSTM and TCN development results.</li>
 <li><a href="outputs/presentation/sensor_audit.csv">Sensor audit</a> and
 <a href="outputs/presentation/sensor_ablation.csv">sensor ablation</a>: all channels and matched CV results.</li>
 <li><a href="docs/REPRODUCING.md">Reproduction guide</a>: regenerate the trained model and

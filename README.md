@@ -30,6 +30,16 @@ The maintenance event is actual RUL ≤30 cycles.
   interval of 88.8–96.5%. The official test was previously observed; this is
   simulation-benchmark evidence, not a deployment or savings claim.
 
+## Sequence model comparison
+
+We also trained small LSTM and TCN models locally on the same development folds.
+Primary CV RMSE was **25.93** for XGBoost, **26.43–26.63** for LSTM, and
+**26.02–26.19** for TCN across two neural-network seeds. These are development
+scores, not the official-test results above. Paired uncertainty intervals include
+zero, so the small RMSE gaps are not decisive. The final XGBoost model is unchanged.
+See [sequence methods and results](outputs/sequences/METHODS.md) for the bounded
+training budget, uncertainty estimates and alert tradeoffs.
+
 ## Explore or reproduce
 
 The executed notebooks and HTML are ready to read. Download the HTML and open it

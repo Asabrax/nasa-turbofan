@@ -1,0 +1,4 @@
+-r requirements.txt
+# Optional sequence experiments: versions used for the recorded CPU run.
+tensorflow==2.22.0rc0
+keras-nightly==3.16.0.dev2026101504

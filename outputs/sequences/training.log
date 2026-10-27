@@ -1,0 +1,76 @@
+2026-10-27T13:32:33+00:00 Fold 1, LSTM, seed 42: early stopping; 302 fit / 76 stop / 189 evaluation engines; 8097 parameters.
+2026-10-27T13:32:55+00:00 Fold 1, LSTM, seed 42: epoch 5, inner RMSE=27.92, best epoch=4.
+2026-10-27T13:33:07+00:00 Fold 1, LSTM, seed 42: epoch 8, inner RMSE=28.57, best epoch=4.
+2026-10-27T13:33:07+00:00 Fold 1, LSTM, seed 42: refitting all 378 outer fitting engines for 4 epochs.
+2026-10-27T13:33:29+00:00 Fold 1, LSTM, seed 42: outer primary RMSE=27.85; 56.9s.
+2026-10-27T13:33:30+00:00 Fold 1, LSTM, seed 73: early stopping; 302 fit / 76 stop / 189 evaluation engines; 8097 parameters.
+2026-10-27T13:33:52+00:00 Fold 1, LSTM, seed 73: epoch 5, inner RMSE=29.14, best epoch=3.
+2026-10-27T13:34:00+00:00 Fold 1, LSTM, seed 73: epoch 7, inner RMSE=29.96, best epoch=3.
+2026-10-27T13:34:00+00:00 Fold 1, LSTM, seed 73: refitting all 378 outer fitting engines for 3 epochs.
+2026-10-27T13:34:17+00:00 Fold 1, LSTM, seed 73: outer primary RMSE=28.01; 47.9s.
+2026-10-27T13:34:18+00:00 Fold 1, TCN, seed 42: early stopping; 302 fit / 76 stop / 189 evaluation engines; 26241 parameters.
+2026-10-27T13:34:50+00:00 Fold 1, TCN, seed 42: epoch 5, inner RMSE=29.13, best epoch=5.
+2026-10-27T13:35:21+00:00 Fold 1, TCN, seed 42: epoch 10, inner RMSE=28.27, best epoch=10.
+2026-10-27T13:35:50+00:00 Fold 1, TCN, seed 42: epoch 15, inner RMSE=27.92, best epoch=14.
+2026-10-27T13:36:08+00:00 Fold 1, TCN, seed 42: epoch 18, inner RMSE=28.04, best epoch=14.
+2026-10-27T13:36:08+00:00 Fold 1, TCN, seed 42: refitting all 378 outer fitting engines for 14 epochs.
+2026-10-27T13:37:55+00:00 Fold 1, TCN, seed 42: outer primary RMSE=27.21; 217.2s.
+2026-10-27T13:37:55+00:00 Fold 1, TCN, seed 73: early stopping; 302 fit / 76 stop / 189 evaluation engines; 26241 parameters.
+2026-10-27T13:38:27+00:00 Fold 1, TCN, seed 73: epoch 5, inner RMSE=29.19, best epoch=5.
+2026-10-27T13:38:57+00:00 Fold 1, TCN, seed 73: epoch 10, inner RMSE=28.28, best epoch=10.
+2026-10-27T13:39:26+00:00 Fold 1, TCN, seed 73: epoch 15, inner RMSE=27.75, best epoch=15.
+2026-10-27T13:39:56+00:00 Fold 1, TCN, seed 73: epoch 20, inner RMSE=27.73, best epoch=17.
+2026-10-27T13:39:56+00:00 Fold 1, TCN, seed 73: refitting all 378 outer fitting engines for 17 epochs.
+2026-10-27T13:42:05+00:00 Fold 1, TCN, seed 73: outer primary RMSE=26.94; 250.3s.
+2026-10-27T13:42:07+00:00 Fold 2, LSTM, seed 42: early stopping; 302 fit / 76 stop / 189 evaluation engines; 8097 parameters.
+2026-10-27T13:42:30+00:00 Fold 2, LSTM, seed 42: epoch 5, inner RMSE=27.95, best epoch=5.
+2026-10-27T13:42:50+00:00 Fold 2, LSTM, seed 42: epoch 10, inner RMSE=27.65, best epoch=10.
+2026-10-27T13:43:10+00:00 Fold 2, LSTM, seed 42: epoch 15, inner RMSE=28.08, best epoch=11.
+2026-10-27T13:43:10+00:00 Fold 2, LSTM, seed 42: refitting all 378 outer fitting engines for 11 epochs.
+2026-10-27T13:44:08+00:00 Fold 2, LSTM, seed 42: outer primary RMSE=25.41; 121.4s.
+2026-10-27T13:44:09+00:00 Fold 2, LSTM, seed 73: early stopping; 302 fit / 76 stop / 189 evaluation engines; 8097 parameters.
+2026-10-27T13:44:31+00:00 Fold 2, LSTM, seed 73: epoch 5, inner RMSE=28.44, best epoch=4.
+2026-10-27T13:44:52+00:00 Fold 2, LSTM, seed 73: epoch 10, inner RMSE=27.93, best epoch=7.
+2026-10-27T13:44:56+00:00 Fold 2, LSTM, seed 73: epoch 11, inner RMSE=27.79, best epoch=7.
+2026-10-27T13:44:56+00:00 Fold 2, LSTM, seed 73: refitting all 378 outer fitting engines for 7 epochs.
+2026-10-27T13:45:33+00:00 Fold 2, LSTM, seed 73: outer primary RMSE=26.12; 84.8s.
+2026-10-27T13:45:34+00:00 Fold 2, TCN, seed 42: early stopping; 302 fit / 76 stop / 189 evaluation engines; 26241 parameters.
+2026-10-27T13:46:09+00:00 Fold 2, TCN, seed 42: epoch 5, inner RMSE=27.90, best epoch=5.
+2026-10-27T13:46:39+00:00 Fold 2, TCN, seed 42: epoch 10, inner RMSE=27.74, best epoch=8.
+2026-10-27T13:46:51+00:00 Fold 2, TCN, seed 42: epoch 12, inner RMSE=27.88, best epoch=8.
+2026-10-27T13:46:51+00:00 Fold 2, TCN, seed 42: refitting all 378 outer fitting engines for 8 epochs.
+2026-10-27T13:47:57+00:00 Fold 2, TCN, seed 42: outer primary RMSE=25.83; 143.3s.
+2026-10-27T13:47:57+00:00 Fold 2, TCN, seed 73: early stopping; 302 fit / 76 stop / 189 evaluation engines; 26241 parameters.
+2026-10-27T13:48:31+00:00 Fold 2, TCN, seed 73: epoch 5, inner RMSE=28.39, best epoch=5.
+2026-10-27T13:49:02+00:00 Fold 2, TCN, seed 73: epoch 10, inner RMSE=27.62, best epoch=9.
+2026-10-27T13:49:33+00:00 Fold 2, TCN, seed 73: epoch 15, inner RMSE=27.55, best epoch=11.
+2026-10-27T13:49:33+00:00 Fold 2, TCN, seed 73: refitting all 378 outer fitting engines for 11 epochs.
+2026-10-27T13:51:00+00:00 Fold 2, TCN, seed 73: outer primary RMSE=26.08; 182.9s.
+2026-10-27T13:51:02+00:00 Fold 3, LSTM, seed 42: early stopping; 302 fit / 76 stop / 189 evaluation engines; 8097 parameters.
+2026-10-27T13:51:24+00:00 Fold 3, LSTM, seed 42: epoch 5, inner RMSE=27.40, best epoch=5.
+2026-10-27T13:51:45+00:00 Fold 3, LSTM, seed 42: epoch 10, inner RMSE=25.10, best epoch=10.
+2026-10-27T13:52:01+00:00 Fold 3, LSTM, seed 42: epoch 14, inner RMSE=25.97, best epoch=10.
+2026-10-27T13:52:01+00:00 Fold 3, LSTM, seed 42: refitting all 378 outer fitting engines for 10 epochs.
+2026-10-27T13:52:55+00:00 Fold 3, LSTM, seed 42: outer primary RMSE=25.95; 113.1s.
+2026-10-27T13:52:56+00:00 Fold 3, LSTM, seed 73: early stopping; 302 fit / 76 stop / 189 evaluation engines; 8097 parameters.
+2026-10-27T13:53:17+00:00 Fold 3, LSTM, seed 73: epoch 5, inner RMSE=27.17, best epoch=5.
+2026-10-27T13:53:38+00:00 Fold 3, LSTM, seed 73: epoch 10, inner RMSE=25.96, best epoch=10.
+2026-10-27T13:53:59+00:00 Fold 3, LSTM, seed 73: epoch 15, inner RMSE=24.64, best epoch=15.
+2026-10-27T13:54:20+00:00 Fold 3, LSTM, seed 73: epoch 20, inner RMSE=24.59, best epoch=19.
+2026-10-27T13:54:20+00:00 Fold 3, LSTM, seed 73: refitting all 378 outer fitting engines for 19 epochs.
+2026-10-27T13:55:59+00:00 Fold 3, LSTM, seed 73: outer primary RMSE=25.70; 183.7s.
+2026-10-27T13:55:59+00:00 Fold 3, TCN, seed 42: early stopping; 302 fit / 76 stop / 189 evaluation engines; 26241 parameters.
+2026-10-27T13:56:33+00:00 Fold 3, TCN, seed 42: epoch 5, inner RMSE=27.14, best epoch=5.
+2026-10-27T13:57:05+00:00 Fold 3, TCN, seed 42: epoch 10, inner RMSE=26.75, best epoch=9.
+2026-10-27T13:57:36+00:00 Fold 3, TCN, seed 42: epoch 15, inner RMSE=26.11, best epoch=15.
+2026-10-27T13:58:08+00:00 Fold 3, TCN, seed 42: epoch 20, inner RMSE=25.72, best epoch=19.
+2026-10-27T13:58:09+00:00 Fold 3, TCN, seed 42: refitting all 378 outer fitting engines for 19 epochs.
+2026-10-27T14:00:39+00:00 Fold 3, TCN, seed 42: outer primary RMSE=24.98; 279.3s.
+2026-10-27T14:00:39+00:00 Fold 3, TCN, seed 73: early stopping; 302 fit / 76 stop / 189 evaluation engines; 26241 parameters.
+2026-10-27T14:01:12+00:00 Fold 3, TCN, seed 73: epoch 5, inner RMSE=27.80, best epoch=5.
+2026-10-27T14:01:44+00:00 Fold 3, TCN, seed 73: epoch 10, inner RMSE=27.18, best epoch=9.
+2026-10-27T14:02:16+00:00 Fold 3, TCN, seed 73: epoch 15, inner RMSE=26.54, best epoch=15.
+2026-10-27T14:02:47+00:00 Fold 3, TCN, seed 73: epoch 20, inner RMSE=26.04, best epoch=20.
+2026-10-27T14:02:48+00:00 Fold 3, TCN, seed 73: refitting all 378 outer fitting engines for 20 epochs.
+2026-10-27T14:05:29+00:00 Fold 3, TCN, seed 73: outer primary RMSE=25.52; 290.7s.
+2026-10-27T14:05:30+00:00 COMPLETE in 1980.3s; saved final XGBoost unchanged.

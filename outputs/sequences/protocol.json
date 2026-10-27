@@ -1,0 +1,21 @@
+{
+  "window": 30,
+  "seeds": [
+    42,
+    73
+  ],
+  "architectures": [
+    "LSTM",
+    "TCN"
+  ],
+  "max_epochs": 20,
+  "patience": 4,
+  "batch_size": 512,
+  "target_cap": 150,
+  "learning_rate": 0.001,
+  "inner_fraction": 0.2,
+  "selection": "Inner primary-endpoint uncapped RMSE; refit all outer fitting engines for selected epoch count",
+  "evaluation": "Existing development folds and endpoints only; no audit or official test evaluation",
+  "original_model_sha256": "bbc9b52f50b7f4548465d7fb348960713d7597f9d82673a805ebadf8039c3ae5",
+  "tensorflow": "2.22.0-rc0"
+}

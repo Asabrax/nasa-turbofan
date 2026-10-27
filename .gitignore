@@ -39,3 +39,7 @@ Thumbs.db
 /outputs/robustness/scenario_endpoints.csv
 /explore_fd001.ipynb
 /scripts/build_fd001_notebook.py
+
+# Optional sequence training artifacts
+*.keras
+/outputs/sequences/oof_predictions.csv

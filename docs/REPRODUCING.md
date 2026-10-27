@@ -5,7 +5,7 @@
 | Area | Scripts | Purpose |
 | --- | --- | --- |
 | Data setup | [`prepare_data.py`](../scripts/prepare_data.py) | Import the twelve checksum-verified dataset files. |
-| Training and experiments | [`train_all.py`](../scripts/train_all.py), [`run_experiments.py`](../scripts/run_experiments.py) | Train the original baselines and compare improved model configurations. |
+| Training and experiments | [`train_all.py`](../scripts/train_all.py), [`run_experiments.py`](../scripts/run_experiments.py), [`run_sequences.py`](../scripts/run_sequences.py) | Train the original baselines and compare tree and sequence models. |
 | Model implementation | [`experiment_models.py`](../scripts/experiment_models.py) | Shared normalization, temporal features and estimators; imported by the experiment scripts. |
 | Additional experiments | [`audit_sensors.py`](../scripts/audit_sensors.py), [`run_robustness.py`](../scripts/run_robustness.py) | Compare sensor sets and evaluate fixed recipes across engine splits, planning windows and alert histories. |
 | Verification | [`check_experiments.py`](../scripts/check_experiments.py), [`verify_experiment_results.py`](../scripts/verify_experiment_results.py), [`verify_robustness.py`](../scripts/verify_robustness.py) | Check feature isolation and independently verify saved experiment and robustness results. |
@@ -73,6 +73,21 @@ Method details: [experiment protocol](../outputs/experiments/METHODS.md) and
 [robustness protocol](../outputs/robustness/METHODS.md). The original local runs
 remain in the training logs. Repeated splits overlap and are sensitivity checks,
 not independent blind replications.
+
+## Optional sequence comparison
+
+[`run_sequences.py`](../scripts/run_sequences.py) compares a compact LSTM and TCN
+using the existing development folds, two seeds and an inner engine split for
+early stopping. It does not replace the final XGBoost model.
+
+```bash
+./nasa/bin/python -m pip install -r requirements-sequences.txt
+./nasa/bin/python scripts/run_sequences.py
+./nasa/bin/python scripts/run_sequences.py --verify
+```
+
+See the [sequence protocol](../outputs/sequences/METHODS.md). Training creates
+ignored fold models and prediction exports; full verification needs these files.
 
 ## What stays out of Git
 
