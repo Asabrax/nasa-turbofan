@@ -43,3 +43,7 @@ Thumbs.db
 # Optional sequence training artifacts
 *.keras
 /outputs/sequences/oof_predictions.csv
+
+# Resumable TCN follow-up artifacts
+/outputs/tcn_followup/_runs/
+/outputs/tcn_followup/oof_predictions.csv

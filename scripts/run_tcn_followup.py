@@ -1,0 +1,309 @@
+"""Resumable TCN window/budget comparison with inner-engine alert calibration."""
+import os
+os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL','3')
+os.environ.setdefault('CUDA_VISIBLE_DEVICES','-1')
+import argparse,gc,hashlib,json,math,subprocess,sys,time
+from pathlib import Path
+from datetime import datetime,timezone
+import numpy as np
+import pandas as pd
+import run_sequences as seq
+from run_experiments import score
+from train_all import ROOT,DATASETS,load_inputs
+from sklearn.model_selection import train_test_split
+
+tf=seq.tf
+OUT=ROOT/'outputs/tcn_followup'
+SEEDS=[42,73,101]
+WINDOWS=[30,50]
+
+
+def write_json(path,value):
+    temp=path.with_suffix(path.suffix+'.tmp')
+    temp.write_text(json.dumps(value,indent=2)+'\n')
+    temp.replace(path)
+
+
+def log(message):
+    line=f'{datetime.now(timezone.utc).isoformat(timespec="seconds")} {message}'
+    print(line,flush=True)
+    with (OUT/'training.log').open('a') as f:f.write(line+'\n')
+
+
+def threshold(actual,pred):
+    positives=np.asarray(pred)[np.asarray(actual)<=30]
+    if not len(positives):raise ValueError('No calibration events')
+    return float(np.sort(positives)[math.ceil(.9*len(positives))-1])
+
+
+def prepare(fold):
+    train,_,_=load_inputs()
+    folds=pd.read_csv(ROOT/'outputs/experiments/cv_engine_folds.csv')
+    endpoints=pd.read_csv(ROOT/'outputs/experiments/validation_endpoints.csv')
+    outer=train[train.engine_key.isin(folds.loc[folds.fold.ne(fold),'engine_key'])]
+    valid=train[train.engine_key.isin(folds.loc[folds.fold.eq(fold),'engine_key'])]
+    engines=outer[['engine_key','dataset']].drop_duplicates().sort_values('engine_key')
+    a,b=train_test_split(engines.engine_key,test_size=.2,random_state=100+fold,stratify=engines.dataset)
+    fit=outer[outer.engine_key.isin(a)];stop=outer[outer.engine_key.isin(b)]
+    assert set(a).isdisjoint(b) and set(outer.engine_key).isdisjoint(valid.engine_key)
+    stop_points=endpoints[endpoints.engine_key.isin(b)&endpoints.protocol.eq('primary')].copy()
+    eval_points=endpoints[endpoints.engine_key.isin(valid.engine_key)].copy()
+    return train,outer,valid,fit,stop,stop_points,eval_points
+
+
+def windows(processor,frame,points=None):
+    X,indices=processor.windows(frame,None if points is None else points.row_index)
+    order=None if points is None else pd.Series(np.arange(len(indices)),index=indices).loc[points.row_index].to_numpy()
+    return X,indices,order
+
+
+def worker(window,fold,seed):
+    seq.WINDOW=window
+    tf.config.threading.set_intra_op_parallelism_threads(3)
+    tf.config.threading.set_inter_op_parallelism_threads(1)
+    tf.config.experimental.enable_op_determinism()
+    name=f'w{window}_f{fold}_s{seed}';out=OUT/'_runs'/name;out.mkdir(parents=True,exist_ok=True)
+    if (out/'done.json').exists():return
+    start=time.perf_counter()
+    train,outer,valid,fit,stop,stop_points,eval_points=prepare(fold)
+    processor=seq.SequenceInputs().fit(fit)
+    Xfit,indices,_=windows(processor,fit)
+    yfit=np.minimum(train.loc[indices,'RUL'].to_numpy(),150).astype('float32')/150
+    Xstop,_,stop_order=windows(processor,stop,stop_points)
+    model=seq.network('TCN',Xfit.shape[-1],seed)
+    ds=seq.dataset(Xfit,yfit,seed)
+    curves=[];best=float('inf');best_epoch=1;wait=0;chosen={}
+    log(f'{name}: inner training (302 fit / 76 stop engines).')
+    for epoch in range(1,61):
+        h=model.fit(ds,epochs=1,verbose=0,shuffle=False)
+        prediction=seq.predict(model,Xstop)[stop_order]
+        rmse=float(np.sqrt(np.mean((stop_points.actual_RUL.to_numpy()-prediction)**2)))
+        if not np.isfinite(rmse):raise FloatingPointError(f'{name}: non-finite validation error')
+        curves.append(dict(window=window,fold=fold,seed=seed,epoch=epoch,training_capped_RMSE=float(np.sqrt(h.history['loss'][0])*150),inner_primary_RMSE=rmse))
+        pd.DataFrame(curves).to_csv(out/'curves.csv',index=False)
+        if rmse<best-.01:
+            best=rmse;best_epoch=epoch;wait=0
+            model.save(out/'inner_best.keras')
+            p=stop_points.copy();p['predicted_RUL']=prediction;p.to_csv(out/'inner_best.csv',index=False)
+        else:wait+=1
+        if epoch%5==0 or wait>=4:log(f'{name}: epoch {epoch}, inner RMSE={rmse:.2f}, selected={best_epoch}.')
+        if window==30 and (epoch==20 or (epoch<20 and wait>=4)):
+            import shutil
+            shutil.copy2(out/'inner_best.keras',out/'inner_20.keras')
+            shutil.copy2(out/'inner_best.csv',out/'inner_20.csv')
+            chosen[20]=dict(selected_epoch=best_epoch,inner_RMSE=best,epochs_observed=epoch)
+        if wait>=4:break
+    chosen[60]=dict(selected_epoch=best_epoch,inner_RMSE=best,epochs_observed=epoch)
+    del model,ds,Xfit,Xstop;gc.collect()
+    processor=seq.SequenceInputs().fit(outer)
+    Xouter,indices,_=windows(processor,outer)
+    youter=np.minimum(train.loc[indices,'RUL'].to_numpy(),150).astype('float32')/150
+    Xeval,_,eval_order=windows(processor,valid,eval_points)
+    for d in DATASETS:
+        key=valid.loc[valid.dataset.eq(d),'engine_key'].iloc[0]
+        prefix=valid[valid.engine_key.eq(key)].iloc[:23].copy();row=prefix.index[-1]
+        A=processor.windows(valid[valid.engine_key.eq(key)],[row])[0]
+        prefix['RUL']=-999
+        np.testing.assert_array_equal(A,processor.windows(prefix,[row])[0])
+        assert np.all(A[0,:window-len(prefix)]==0)
+    results=[];by_epoch={}
+    for budget,selection in chosen.items():
+        selected=selection['selected_epoch']
+        inner=pd.read_csv(out/('inner_20.csv' if budget==20 else 'inner_best.csv'))
+        t=threshold(inner.actual_RUL,inner.predicted_RUL)
+        if selected not in by_epoch:
+            log(f'{name}: refit all 378 fitting engines for {selected} epochs (budget {budget}).')
+            model=seq.network('TCN',Xouter.shape[-1],seed)
+            ds=seq.dataset(Xouter,youter,seed)
+            class Progress(tf.keras.callbacks.Callback):
+                def on_epoch_end(self,epoch,logs=None):
+                    if (epoch+1)%10==0:log(f'{name}: refit epoch {epoch+1}/{selected}.')
+            model.fit(ds,epochs=selected,verbose=0,shuffle=False,callbacks=[Progress()])
+            prediction=seq.predict(model,Xeval)[eval_order]
+            model.save(out/f'outer_epoch{selected}.keras')
+            by_epoch[selected]=prediction
+            del model,ds;gc.collect()
+        record=eval_points.copy();record['predicted_RUL']=by_epoch[selected]
+        record['window']=window;record['budget']=budget;record['fold']=fold;record['seed']=seed
+        record['calibrated_threshold']=t
+        record.to_csv(out/f'predictions_{budget}.csv',index=False)
+        primary=record[record.protocol.eq('primary')]
+        fixed=score(primary.actual_RUL,primary.predicted_RUL)
+        calibrated=score(primary.actual_RUL,primary.predicted_RUL,t)
+        results.append(dict(window=window,budget=budget,fold=fold,seed=seed,**selection,
+            threshold=t,calibration_events=int(inner.actual_RUL.le(30).sum()),
+            inner_calibrated_recall=score(inner.actual_RUL,inner.predicted_RUL,t)['recall'],
+            primary_RMSE=fixed['RMSE'],fixed_recall=fixed['recall'],calibrated_recall=calibrated['recall'],
+            fit_engines=outer.engine_key.nunique(),evaluation_engines=valid.engine_key.nunique(),
+            parameters=26241,seconds=time.perf_counter()-start))
+        log(f'{name}: budget {budget}, outer RMSE={fixed["RMSE"]:.2f}, calibrated recall={calibrated["recall"]:.1%}, threshold={t:.2f}.')
+    write_json(out/'done.json',results)
+    log(f'{name}: completed in {time.perf_counter()-start:.1f}s.')
+
+
+def summarize():
+    fits=[];predictions=[];curves=[]
+    for window in WINDOWS:
+        for fold in [1,2,3]:
+            for seed in SEEDS:
+                run=OUT/'_runs'/f'w{window}_f{fold}_s{seed}'
+                if not (run/'done.json').exists():continue
+                f=json.loads((run/'done.json').read_text());fits.extend(f)
+                curves.append(pd.read_csv(run/'curves.csv'))
+                for item in f:predictions.append(pd.read_csv(run/f'predictions_{item["budget"]}.csv'))
+    if not fits:return
+    pd.DataFrame(fits).to_csv(OUT/'fits.csv',index=False)
+    pd.concat(curves,ignore_index=True).to_csv(OUT/'learning_curves.csv',index=False)
+    pred=pd.concat(predictions,ignore_index=True);pred.to_csv(OUT/'oof_predictions.csv',index=False)
+    metrics=[]
+    for (window,budget,seed,protocol),g in pred.groupby(['window','budget','seed','protocol']):
+        if g.fold.nunique()!=3:continue
+        for rule in ['fixed_30','inner_calibrated']:
+            actual=g.actual_RUL.to_numpy();prediction=g.predicted_RUL.to_numpy()
+            m=score(actual,prediction)
+            if rule=='inner_calibrated':
+                flag=prediction<=g.calibrated_threshold.to_numpy();truth=actual<=30
+                tp=int((flag&truth).sum());fp=int((flag&~truth).sum());fn=int((~flag&truth).sum());tn=int((~flag&~truth).sum())
+                m.update(threshold=None,TP=tp,FP=fp,FN=fn,TN=tn,recall=tp/(tp+fn),precision=tp/max(tp+fp,1))
+            metrics.append(dict(window=window,budget=budget,seed=seed,protocol=protocol,rule=rule,**m))
+    pd.DataFrame(metrics).to_csv(OUT/'metrics.csv',index=False)
+    return pred,metrics
+
+
+def paired_comparisons(pred):
+    baseline=pd.read_csv(ROOT/'outputs/experiments/oof_predictions.csv')
+    baseline=baseline[baseline.candidate.eq('tuned_d6_n800')]
+    rows=[]
+    keys=['engine_key','protocol','snapshot','row_index']
+    for (window,budget,seed,protocol),g in pred.groupby(['window','budget','seed','protocol']):
+        comparators={'XGBoost':baseline[baseline.protocol.eq(protocol)]}
+        if budget==60:
+            other=pred[(pred.window==30)&(pred.budget==(20 if window==30 else 60))&(pred.seed==seed)&(pred.protocol==protocol)]
+            comparators['TCN_30_20' if window==30 else 'TCN_30_60']=other
+        for label,ref in comparators.items():
+            p=g.merge(ref[keys+['predicted_RUL']],on=keys,suffixes=('_candidate','_reference'),validate='one_to_one')
+            assert len(p)==1701
+            p['a']=(p.predicted_RUL_candidate-p.actual_RUL)**2;p['b']=(p.predicted_RUL_reference-p.actual_RUL)**2
+            per=p.groupby('engine_key')[['a','b']].mean().to_numpy()
+            rng=np.random.default_rng(42);indices=rng.integers(0,len(per),(2000,len(per)))
+            sample=np.sqrt(per[indices].mean(axis=1));diff=sample[:,0]-sample[:,1]
+            point=np.sqrt(per.mean(axis=0));low,high=np.quantile(diff,[.025,.975])
+            rows.append(dict(window=window,budget=budget,seed=seed,protocol=protocol,reference=label,difference=point[0]-point[1],lower95=low,upper95=high))
+    pd.DataFrame(rows).to_csv(OUT/'paired_comparisons.csv',index=False)
+
+
+def alert_intervals(pred):
+    rows=[]
+    for (window,budget,seed,protocol),group in pred.groupby(['window','budget','seed','protocol']):
+        for rule in ['fixed_30','inner_calibrated']:
+            g=group.copy();truth=g.actual_RUL.le(30)
+            flag=g.predicted_RUL.le(30 if rule=='fixed_30' else g.calibrated_threshold)
+            g['TP']=(truth&flag).astype(int);g['FP']=(~truth&flag).astype(int);g['FN']=(truth&~flag).astype(int)
+            counts=g.groupby('engine_key')[['TP','FP','FN']].sum().to_numpy()
+            rng=np.random.default_rng(42)
+            samples=counts[rng.integers(0,len(counts),(2000,len(counts)))].sum(axis=1)
+            total=counts.sum(axis=0)
+            for metric,denominator in [('precision',1),('recall',2)]:
+                values=samples[:,0]/np.maximum(samples[:,0]+samples[:,denominator],1)
+                low,high=np.quantile(values,[.025,.975])
+                rows.append(dict(window=window,budget=budget,seed=seed,protocol=protocol,rule=rule,metric=metric,
+                    estimate=total[0]/max(total[0]+total[denominator],1),lower95=low,upper95=high,engines=len(counts),draws=2000))
+    pd.DataFrame(rows).to_csv(OUT/'alert_intervals.csv',index=False)
+
+
+def run():
+    OUT.mkdir(parents=True,exist_ok=True)
+    original=ROOT/'outputs/experiments/selected_model.joblib'
+    config=dict(windows=WINDOWS,seeds=SEEDS,max_epochs=60,patience=4,min_delta=.01,batch_size=512,
+        threads_per_worker=3,workers=2,calibration='90% recall on inner best-epoch predictions; transfer threshold to outer refit; evaluate outer engines',
+        target_cap=150,learning_rate=.001,architecture='Same 32-channel residual TCN',
+        original_model_sha256=hashlib.sha256(original.read_bytes()).hexdigest(),
+        split_sha256=hashlib.sha256((ROOT/'outputs/experiments/cv_engine_folds.csv').read_bytes()).hexdigest(),
+        endpoints_sha256=hashlib.sha256((ROOT/'outputs/experiments/validation_endpoints.csv').read_bytes()).hexdigest())
+    if (OUT/'protocol.json').exists():assert json.loads((OUT/'protocol.json').read_text())==config
+    else:write_json(OUT/'protocol.json',config)
+    (OUT/'environment.txt').write_text(subprocess.check_output([sys.executable,'-m','pip','freeze'],text=True))
+    jobs=[(w,f,s) for w in WINDOWS for f in [1,2,3] for s in SEEDS]
+    pending=[j for j in jobs if not (OUT/'_runs'/f'w{j[0]}_f{j[1]}_s{j[2]}'/'done.json').exists()]
+    active=[];start=time.perf_counter();log(f'Start/resume: {len(pending)} of {len(jobs)} jobs remaining.')
+    while pending or active:
+        while pending and len(active)<2:
+            w,f,s=pending.pop(0);folder=OUT/'_runs'/f'w{w}_f{f}_s{s}';folder.mkdir(parents=True,exist_ok=True)
+            handle=(folder/'console.log').open('w')
+            process=subprocess.Popen([sys.executable,__file__,'--worker',str(w),str(f),str(s)],stdout=handle,stderr=subprocess.STDOUT)
+            active.append((process,handle,(w,f,s)))
+        for item in active[:]:
+            process,handle,job=item
+            if process.poll() is not None:
+                handle.close();active.remove(item)
+                if process.returncode:
+                    for p,h,j in active:p.terminate();h.close()
+                    raise RuntimeError(f'Worker {job} failed; inspect its console.log')
+                summarize()
+        if active:time.sleep(2)
+    pred,metrics=summarize();assert len(pred)==30618
+    paired_comparisons(pred)
+    alert_intervals(pred)
+    assert hashlib.sha256(original.read_bytes()).hexdigest()==config['original_model_sha256']
+    write_json(OUT/'results.json',dict(protocol=config,metrics=metrics,completed_utc=datetime.now(timezone.utc).isoformat(),session_seconds=time.perf_counter()-start))
+    log('COMPLETE: 18 jobs, 27 scored fold models; original final XGBoost unchanged.')
+
+
+def verify():
+    protocol=json.loads((OUT/'protocol.json').read_text())
+    predictions=pd.read_csv(OUT/'oof_predictions.csv');metrics=pd.read_csv(OUT/'metrics.csv');fits=pd.read_csv(OUT/'fits.csv')
+    assert len(fits)==27 and len(predictions)==30618
+    prepared={fold:prepare(fold) for fold in [1,2,3]}
+    for row in fits.itertuples():
+        run=OUT/'_runs'/f'w{row.window}_f{row.fold}_s{row.seed}'
+        inner=pd.read_csv(run/('inner_20.csv' if row.budget==20 else 'inner_best.csv'))
+        assert np.isclose(row.threshold,threshold(inner.actual_RUL,inner.predicted_RUL))
+        train,outer,valid,fit,stop,stop_points,eval_points=prepared[row.fold]
+        assert set(inner.engine_key)==set(stop.engine_key)
+        g=predictions[(predictions.window==row.window)&(predictions.budget==row.budget)&(predictions.seed==row.seed)&(predictions.fold==row.fold)]
+        cols=['engine_key','row_index','actual_RUL','protocol','snapshot']
+        pd.testing.assert_frame_equal(g[cols].reset_index(drop=True),eval_points[cols].reset_index(drop=True),check_dtype=False)
+        assert row.fit_engines==378 and row.evaluation_engines==189
+        curve=pd.read_csv(run/'curves.csv');curve=curve[curve.epoch<=row.budget]
+        best=float('inf');selected=0
+        for point in curve.itertuples():
+            if point.inner_primary_RMSE<best-.01:best=point.inner_primary_RMSE;selected=point.epoch
+        assert selected==row.selected_epoch and np.isclose(best,row.inner_RMSE)
+    for row in metrics.itertuples():
+        g=predictions[(predictions.window==row.window)&(predictions.budget==row.budget)&(predictions.seed==row.seed)&(predictions.protocol==row.protocol)]
+        assert len(g)==1701
+        assert np.isclose(np.sqrt(np.mean((g.actual_RUL-g.predicted_RUL)**2)),row.RMSE)
+        threshold_values=30 if row.rule=='fixed_30' else g.calibrated_threshold
+        flag=g.predicted_RUL<=threshold_values;truth=g.actual_RUL<=30
+        assert (flag&truth).sum()==row.TP and (flag&~truth).sum()==row.FP
+        assert (~flag&truth).sum()==row.FN and (~flag&~truth).sum()==row.TN
+    for window in WINDOWS:
+        seq.WINDOW=window
+        row=fits[(fits.window==window)&(fits.budget==60)&(fits.fold==1)&(fits.seed==42)].iloc[0]
+        run=OUT/'_runs'/f'w{window}_f1_s42'
+        train,outer,valid,fit,stop,stop_points,eval_points=prepared[1]
+        for which,frame,fit_frame,points,path in [
+            ('inner',stop,fit,stop_points,'inner_best.keras'),
+            ('outer',valid,outer,eval_points,f'outer_epoch{int(row.selected_epoch)}.keras')]:
+            processor=seq.SequenceInputs().fit(fit_frame)
+            X,_,order=windows(processor,frame,points)
+            model=tf.keras.models.load_model(run/path)
+            assert model.count_params()==int(row.parameters)
+            actual=seq.predict(model,X)[order]
+            expected=pd.read_csv(run/('inner_best.csv' if which=='inner' else 'predictions_60.csv')).predicted_RUL
+            np.testing.assert_allclose(actual,expected,rtol=1e-5,atol=.001)
+    original=ROOT/'outputs/experiments/selected_model.joblib'
+    assert hashlib.sha256(original.read_bytes()).hexdigest()==protocol['original_model_sha256']
+    print('PASS: 27 fold results, 30,618 matched endpoints, engine separation, inner-only thresholds, epoch selection, metrics and unchanged final model.')
+
+if __name__=='__main__':
+    parser=argparse.ArgumentParser();parser.add_argument('--worker',nargs=3,type=int)
+    parser.add_argument('--verify',action='store_true')
+    parser.add_argument('--summarize',action='store_true');args=parser.parse_args()
+    if args.worker:worker(*args.worker)
+    elif args.verify:verify()
+    elif args.summarize:
+        pred,metrics=summarize()
+        assert len(pred)==30618
+        paired_comparisons(pred);alert_intervals(pred)
+    else:run()

@@ -16,11 +16,14 @@ figure{margin:26px 0;padding:12px 0}img{display:block;width:100%;height:auto}.ta
 <h3>NASA C-MAPSS · Applied machine learning</h3>
 <p><strong>22.63-cycle test RMSE — 31.7% below our previous best model.</strong></p>
 <p>A controlled study of 709 training engines across four operating/fault scenarios.
-The final model uses regime-normalized sensor histories and XGBoost with a
+The reported test model uses regime-normalized sensor histories and XGBoost with a
 150-cycle training target cap. Evaluation uses the true, uncapped remaining life
 of 707 test engines.</p>
 <p><strong>Main finding:</strong> the model improves prediction within the maintenance planning
 window. The cap sacrifices accuracy for some engines much earlier in life.</p>
+<p><strong>Development follow-up:</strong> a 50-cycle TCN improves primary CV RMSE to
+23.59–24.13 versus 25.93 for XGBoost on the same development endpoints. It has
+not received a new audit or official-test evaluation (Section 12).</p>
 <p><em>Presentation guide:</em> read the sections in order. Code is available for inspection;
 training runs and full comparisons are retained in the supporting notebooks.</p>
 </div><details class="code"><summary>View reproducible code</summary><pre><code>from pathlib import Path
@@ -629,11 +632,11 @@ display(pd.DataFrame(rows).set_index([&#x27;Model&#x27;,&#x27;Seed&#x27;]).round
     </tr>
   </tbody>
 </table>
-</div></div><div class="narrative"><p><strong>Result:</strong> neither tested sequence configuration improves pooled primary RMSE,
+</div></div><div class="narrative"><p><strong>Initial result:</strong> neither tested sequence configuration improves pooled primary RMSE,
 but all paired 95% intervals include zero; this does not establish a clear
 accuracy advantage for either family. At the same threshold of 30, TCN recall
 is <strong>62.8–70.3%</strong>, versus <strong>81.2%</strong> for XGBoost, with higher precision. Similar
-RMSE does not imply equivalent alert behavior. No neural threshold was calibrated.</p>
+RMSE does not imply equivalent alert behavior. No neural threshold was calibrated in this initial comparison; the follow-up below tests calibration separately.</p>
 <p>This is a bounded comparison of specific model configurations, not a ranking
 of all tree and neural methods. XGBoost was tuned in earlier experiments; the
 networks received one fixed architecture each and a maximum of 20 inner-training
@@ -643,14 +646,158 @@ existing final XGBoost model and its official test predictions remain unchanged.
 <a href="outputs/sequences/paired_comparison.csv">paired comparisons</a>,
 <a href="outputs/sequences/learning_curves.csv">training curves</a>, and
 <a href="outputs/sequences/generalization_gaps.csv">matched-protocol training/validation errors</a>.</p>
+</div><div class="narrative"><h3>Follow-up: training budget, history length and alert calibration</h3>
+<p>We then tested <strong>30- and 50-cycle histories</strong>, up to <strong>60 training epochs</strong>, and
+<strong>three seeds per window</strong>. The same architecture, engine folds and endpoints
+were retained. A contemporaneous 20-epoch reference isolates the budget change;
+early stopping can still end a run before either maximum.</p>
+<p>These are development-CV results on the same 567 engines. The ranges below
+show variation across seeds, not confidence intervals. The comparison remains
+a bounded follow-up on an already-studied benchmark.</p>
+</div><details class="code"><summary>View reproducible code</summary><pre><code>followup=pd.read_csv(ROOT/&#x27;outputs/tcn_followup/metrics.csv&#x27;)
+fixed=followup[followup.rule.eq(&#x27;fixed_30&#x27;)]
+reference=comparison[comparison.candidate.eq(&#x27;tuned_d6_n800&#x27;)].set_index(&#x27;protocol&#x27;)
+rows=[{&#x27;History / max epochs&#x27;:&#x27;XGBoost reference&#x27;,
+       &#x27;Primary RMSE&#x27;:f&quot;{reference.loc[&#x27;primary&#x27;,&#x27;RMSE&#x27;]:.2f}&quot;,
+       &#x27;Broad RMSE&#x27;:f&quot;{reference.loc[&#x27;broad&#x27;,&#x27;RMSE&#x27;]:.2f}&quot;}]
+for (window,budget),g in fixed.groupby([&#x27;window&#x27;,&#x27;budget&#x27;]):
+    primary=g[g.protocol.eq(&#x27;primary&#x27;)].RMSE
+    broad=g[g.protocol.eq(&#x27;broad&#x27;)].RMSE
+    rows.append({&#x27;History / max epochs&#x27;:f&#x27;TCN {window} / {budget}&#x27;,
+                 &#x27;Primary RMSE&#x27;:f&#x27;{primary.min():.2f}–{primary.max():.2f}&#x27;,
+                 &#x27;Broad RMSE&#x27;:f&#x27;{broad.min():.2f}–{broad.max():.2f}&#x27;})
+display(pd.DataFrame(rows).set_index(&#x27;History / max epochs&#x27;).rename_axis(index=None))</code></pre></details><div class="table-wrap"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Primary RMSE</th>
+      <th>Broad RMSE</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>XGBoost reference</th>
+      <td>25.93</td>
+      <td>45.32</td>
+    </tr>
+    <tr>
+      <th>TCN 30 / 20</th>
+      <td>25.80–26.05</td>
+      <td>45.25–45.73</td>
+    </tr>
+    <tr>
+      <th>TCN 30 / 60</th>
+      <td>25.97–26.00</td>
+      <td>45.47–45.84</td>
+    </tr>
+    <tr>
+      <th>TCN 50 / 60</th>
+      <td>23.59–24.13</td>
+      <td>43.75–43.96</td>
+    </tr>
+  </tbody>
+</table>
+</div></div><div class="narrative"><p>For each fold, the alert threshold was selected to reach at least 90% recall
+on the <strong>inner stopping engines</strong>, then transferred to the refitted model and
+scored on <strong>separate outer engines</strong>. Refitting and sampling variation can change
+calibration; outer recall is not guaranteed to reach the inner target.</p>
+<p>The following table uses the 60-epoch budget. Calibration changes the alert rule,
+not the RUL predictions or RMSE. Thresholds vary by fold and seed.</p>
+</div><details class="code"><summary>View reproducible code</summary><pre><code>rows=[]
+for (window,rule),g in followup[followup.protocol.eq(&#x27;primary&#x27;) &amp; followup.budget.eq(60)].groupby([&#x27;window&#x27;,&#x27;rule&#x27;]):
+    rows.append({&#x27;History&#x27;:window,&#x27;Alert rule&#x27;:{&#x27;fixed_30&#x27;:&#x27;Fixed 30&#x27;,&#x27;inner_calibrated&#x27;:&#x27;Inner-calibrated&#x27;}[rule],
+                 &#x27;Recall&#x27;:f&#x27;{g.recall.min():.1%}–{g.recall.max():.1%}&#x27;,
+                 &#x27;Precision&#x27;:f&#x27;{g.precision.min():.1%}–{g.precision.max():.1%}&#x27;})
+display(pd.DataFrame(rows).set_index([&#x27;History&#x27;,&#x27;Alert rule&#x27;]).rename_axis(index=[None,None]))</code></pre></details><div class="table-wrap"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th></th>
+      <th>Recall</th>
+      <th>Precision</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th rowspan="2" valign="top">30</th>
+      <th>Fixed 30</th>
+      <td>63.1%–74.7%</td>
+      <td>97.8%–99.5%</td>
+    </tr>
+    <tr>
+      <th>Inner-calibrated</th>
+      <td>89.8%–93.9%</td>
+      <td>86.3%–88.4%</td>
+    </tr>
+    <tr>
+      <th rowspan="2" valign="top">50</th>
+      <th>Fixed 30</th>
+      <td>75.1%–81.2%</td>
+      <td>97.8%–98.3%</td>
+    </tr>
+    <tr>
+      <th>Inner-calibrated</th>
+      <td>90.8%–93.5%</td>
+      <td>90.1%–92.2%</td>
+    </tr>
+  </tbody>
+</table>
+</div></div><div class="narrative"><p><strong>Finding:</strong> the 50-cycle TCN reaches <strong>23.59–24.13 primary CV RMSE</strong>, a
+<strong>7–9% reduction</strong> from the XGBoost reference. All three paired 95% intervals
+favor TCN on these endpoints. Every matched fold/seed improves over the
+30-cycle TCN. More training alone at 30 cycles does not consistently help;
+only two of nine runs select later epochs.</p>
+<p>Calibration raises 50-cycle TCN recall to <strong>90.8–93.5%</strong>, while precision falls
+to <strong>90.1–92.2%</strong>. False alerts increase from 4–5 to 23–30 per 1,701 primary
+endpoints. These are snapshot alerts, not unique-engine or first-alert counts.
+One individual fold/seed reaches only 86.7% recall; the 90% inner target is
+not a guarantee on separate engines.</p>
+<p><strong>Decision:</strong> keep the 50-cycle TCN as the stronger development candidate for
+independent validation. These are repeated development comparisons; the paired
+intervals condition on fitted models and are not adjusted for multiple tests.
+The original XGBoost test headline and final model remain unchanged.</p>
+<p><a href="outputs/tcn_followup/METHODS.md">Follow-up methods and interpretation</a>,
+<a href="outputs/tcn_followup/paired_comparisons.csv">paired RMSE comparisons</a>, and
+<a href="outputs/tcn_followup/alert_intervals.csv">alert uncertainty intervals</a> retain
+the detailed evidence. No new audit or official-test evaluation was performed.</p>
 </div><div class="narrative"><h2 id="13-what-we-can-defend-and-what-comes-next">13. What we can defend—and what comes next</h2>
 <p><strong>Supported:</strong> lower planning-window error across the tested splits and horizons,
 an explicit sensor ablation, uncertainty estimates for snapshot alerts, and a
-measured first-alert tradeoff on simulated held-out histories.</p>
+measured first-alert tradeoff on simulated held-out histories. A 50-cycle TCN
+also improves error in the follow-up development comparison.</p>
 <p><strong>Not established:</strong> a globally optimal model, real-fleet reliability or savings,
 accurate long-horizon RUL, a guaranteed recall target, or a meaningful performance
 difference between the 14- and 17-sensor variants.</p>
-<p>The next substantive step is external validation and an explicit inspection
+<p>The next substantive step is independent validation of the frozen 50-cycle TCN
+recipe, ideally on an external dataset, and an explicit inspection
 policy with costs and intervention outcomes. A new external dataset would
 provide stronger evidence than further tuning on this already-observed benchmark.</p>
 </div><div class="narrative"><h2 id="appendix-evidence-and-reproduction">Appendix · Evidence and reproduction</h2>
@@ -661,7 +808,7 @@ provide stronger evidence than further tuning on this already-observed benchmark
 <li><a href="outputs/robustness/METHODS.md">Robustness methods</a>, <a href="outputs/robustness/split_metrics.csv">split metrics</a>,
 <a href="outputs/robustness/test_alert_intervals.csv">alert intervals</a> and
 <a href="outputs/robustness/engine_alert_events.csv">first-alert events</a>.</li>
-<li><a href="outputs/sequences/METHODS.md">Sequence comparison</a>: LSTM and TCN development results.</li>
+<li><a href="outputs/sequences/METHODS.md">Sequence comparison</a> and <a href="outputs/tcn_followup/METHODS.md">TCN follow-up</a>: development results, training budgets and alert calibration.</li>
 <li><a href="outputs/presentation/sensor_audit.csv">Sensor audit</a> and
 <a href="outputs/presentation/sensor_ablation.csv">sensor ablation</a>: all channels and matched CV results.</li>
 <li><a href="docs/REPRODUCING.md">Reproduction guide</a>: regenerate the trained model and

@@ -1,0 +1,24 @@
+{
+  "windows": [
+    30,
+    50
+  ],
+  "seeds": [
+    42,
+    73,
+    101
+  ],
+  "max_epochs": 60,
+  "patience": 4,
+  "min_delta": 0.01,
+  "batch_size": 512,
+  "threads_per_worker": 3,
+  "workers": 2,
+  "calibration": "90% recall on inner best-epoch predictions; transfer threshold to outer refit; evaluate outer engines",
+  "target_cap": 150,
+  "learning_rate": 0.001,
+  "architecture": "Same 32-channel residual TCN",
+  "original_model_sha256": "bbc9b52f50b7f4548465d7fb348960713d7597f9d82673a805ebadf8039c3ae5",
+  "split_sha256": "02cf12b8428160f1e10d69ca47193d43e8aaa9f097126ef898d541bcaebbca2d",
+  "endpoints_sha256": "61e80a1b59d6548f67a5463b3d00215cba323f5f247d0dd2579c9c8972afe3ba"
+}

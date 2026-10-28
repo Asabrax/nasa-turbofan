@@ -40,6 +40,14 @@ zero, so the small RMSE gaps are not decisive. The final XGBoost model is unchan
 See [sequence methods and results](outputs/sequences/METHODS.md) for the bounded
 training budget, uncertainty estimates and alert tradeoffs.
 
+The [TCN follow-up](outputs/tcn_followup/METHODS.md) found a stronger development
+candidate: **50-cycle histories reached 23.59–24.13 primary CV RMSE** across
+three seeds, 7–9% below XGBoost on the same endpoints. Paired intervals favor
+TCN for all three seeds. Inner-calibrated alerts achieved **90.8–93.5% recall**
+and **90.1–92.2% precision**, with more false alerts. Increasing the budget alone
+at 30 cycles did not consistently help. These follow-up development results do
+not replace the XGBoost official-test results; TCN still needs independent validation.
+
 ## Explore or reproduce
 
 The executed notebooks and HTML are ready to read. Download the HTML and open it

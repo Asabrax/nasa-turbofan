@@ -7,7 +7,7 @@
 | Data setup | [`prepare_data.py`](../scripts/prepare_data.py) | Import the twelve checksum-verified dataset files. |
 | Training and experiments | [`train_all.py`](../scripts/train_all.py), [`run_experiments.py`](../scripts/run_experiments.py), [`run_sequences.py`](../scripts/run_sequences.py) | Train the original baselines and compare tree and sequence models. |
 | Model implementation | [`experiment_models.py`](../scripts/experiment_models.py) | Shared normalization, temporal features and estimators; imported by the experiment scripts. |
-| Additional experiments | [`audit_sensors.py`](../scripts/audit_sensors.py), [`run_robustness.py`](../scripts/run_robustness.py) | Compare sensor sets and evaluate fixed recipes across engine splits, planning windows and alert histories. |
+| Additional experiments | [`audit_sensors.py`](../scripts/audit_sensors.py), [`run_robustness.py`](../scripts/run_robustness.py), [`run_tcn_followup.py`](../scripts/run_tcn_followup.py) | Compare sensor sets and TCN settings; evaluate split sensitivity, planning windows and alert policies. |
 | Verification | [`check_experiments.py`](../scripts/check_experiments.py), [`verify_experiment_results.py`](../scripts/verify_experiment_results.py), [`verify_robustness.py`](../scripts/verify_robustness.py) | Check feature isolation and independently verify saved experiment and robustness results. |
 | Notebook rendering | [`execute_notebook.py`](../scripts/execute_notebook.py), [`render_presentation.py`](../scripts/render_presentation.py) | Execute a notebook and render the main presentation as HTML. |
 
@@ -89,9 +89,23 @@ early stopping. It does not replace the final XGBoost model.
 See the [sequence protocol](../outputs/sequences/METHODS.md). Training creates
 ignored fold models and prediction exports; full verification needs these files.
 
+## TCN follow-up
+
+[`run_tcn_followup.py`](../scripts/run_tcn_followup.py) compares 30/50-cycle
+histories, a larger training budget, three seeds and inner-engine alert
+calibration. Completed jobs are resumable; large per-job artifacts stay local.
+
+```bash
+./nasa/bin/python scripts/run_tcn_followup.py
+./nasa/bin/python scripts/run_tcn_followup.py --verify
+```
+
+See the [follow-up protocol](../outputs/tcn_followup/METHODS.md). The existing
+final XGBoost model and official test predictions are preserved.
+
 ## What stays out of Git
 
-Raw archives/data, `.joblib`/`.ubj` models, large OOF and trajectory exports,
+Raw archives/data, `.joblib`/`.ubj`/`.keras` models, large OOF and trajectory exports,
 duplicate notebook previews, and the superseded FD001-only experiment are
 excluded. Compact metrics and the inputs needed to rebuild the presentation stay
 tracked. Removing files from the current tree does not remove earlier Git history.
