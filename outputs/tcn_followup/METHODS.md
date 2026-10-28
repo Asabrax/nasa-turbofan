@@ -205,3 +205,12 @@ locally, but is ignored by Git. Compact summaries and curves are tracked.
 protocol. To intentionally run a different protocol, use a separate output
 location rather than overwriting this study. The script supports this specific
 predeclared comparison, not arbitrary command-line hyperparameter search.
+
+
+## Regularization follow-up
+
+The [bounded regularization comparison](../regularization/METHODS.md) tested
+smaller gaps against held-out prediction accuracy using inner-engine selection.
+It did not establish a reliable improvement, so the existing recipes are
+retained. This result does not establish that the original models are free of
+overfitting or that other regularization choices cannot help.

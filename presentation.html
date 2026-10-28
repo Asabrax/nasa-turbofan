@@ -864,6 +864,20 @@ isolation checks passed. Repeated development-fold selection remains a risk;
 these checks do not prove generalization to new fleets. See the
 <a href="outputs/experiments/METHODS.md">XGBoost diagnostic</a> and
 <a href="outputs/tcn_followup/METHODS.md">TCN diagnostic</a> for subgroup results and limits.</p>
+</div><div class="narrative"><h3>Does reducing the gap improve prediction?</h3>
+<p>We ran a bounded follow-up with choices made on inner engines and evaluated on
+separate outer engines. <strong>XGBoost's inner-selected regularization recipe scored
+26.06 primary RMSE versus 25.93 for the baseline.</strong> The shallow candidate reduced
+the training–validation gap from 8.14 to 2.37 cycles but worsened held-out RMSE
+to 26.75.</p>
+<p>For TCN, halving channels and increasing dropout reduced the gap to 1.00–2.04
+cycles. It worsened primary error in two of three seeds; the third seed's small
+gain had a paired interval including zero. Inner validation retained the original
+TCN in all nine fold/seed runs. Near-failure error worsened for all three seeds.</p>
+<p><strong>Decision: retain the existing recipes.</strong> Smaller gaps alone are not a reason
+to replace a predictor. These are bounded follow-up comparisons on already-studied
+development folds; independent validation remains the next substantive step.
+See the <a href="outputs/regularization/METHODS.md">regularization results and protocol</a>.</p>
 </div><div class="narrative"><h2 id="13-what-we-can-defend-and-what-comes-next">13. What we can defend—and what comes next</h2>
 <p><strong>Supported:</strong> lower planning-window error across the tested splits and horizons,
 an explicit sensor ablation, uncertainty estimates for snapshot alerts, and a

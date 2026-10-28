@@ -7,7 +7,7 @@
 | Data setup | [`prepare_data.py`](../scripts/prepare_data.py) | Import the twelve checksum-verified dataset files. |
 | Training and experiments | [`train_all.py`](../scripts/train_all.py), [`run_experiments.py`](../scripts/run_experiments.py), [`run_sequences.py`](../scripts/run_sequences.py) | Train the original baselines and compare tree and sequence models. |
 | Model implementation | [`experiment_models.py`](../scripts/experiment_models.py) | Shared normalization, temporal features and estimators; imported by the experiment scripts. |
-| Additional experiments | [`audit_sensors.py`](../scripts/audit_sensors.py), [`run_robustness.py`](../scripts/run_robustness.py), [`run_tcn_followup.py`](../scripts/run_tcn_followup.py) | Compare sensor sets and TCN settings; evaluate split sensitivity, planning windows and alert policies. |
+| Additional experiments | [`audit_sensors.py`](../scripts/audit_sensors.py), [`run_robustness.py`](../scripts/run_robustness.py), [`run_tcn_followup.py`](../scripts/run_tcn_followup.py), [`run_regularization.py`](../scripts/run_regularization.py) | Compare sensor sets and TCN settings; evaluate split sensitivity, planning windows and alert policies. |
 | Verification | [`check_experiments.py`](../scripts/check_experiments.py), [`verify_experiment_results.py`](../scripts/verify_experiment_results.py), [`verify_robustness.py`](../scripts/verify_robustness.py) | Check feature isolation and independently verify saved experiment and robustness results. |
 | Notebook rendering | [`execute_notebook.py`](../scripts/execute_notebook.py), [`render_presentation.py`](../scripts/render_presentation.py) | Execute a notebook and render the main presentation as HTML. |
 
@@ -114,6 +114,19 @@ calibration. Completed jobs are resumable; large per-job artifacts stay local.
 
 See the [follow-up protocol](../outputs/tcn_followup/METHODS.md). The existing
 final XGBoost model and official test predictions are preserved.
+
+## Bounded regularization comparison
+
+```bash
+./nasa/bin/python scripts/run_regularization.py
+./nasa/bin/python scripts/run_regularization.py --verify
+```
+
+Run the prior TCN follow-up first: this comparison reuses its baseline models
+and inner selections. It compares frozen XGBoost regularization options and a
+smaller TCN, choosing recipes on inner engines and evaluating separate outer
+engines. Large checkpoints stay local; interrupted jobs are resumable. See the
+[regularization protocol](../outputs/regularization/METHODS.md).
 
 ## What stays out of Git
 

@@ -128,3 +128,12 @@ Evidence: [fold/subgroup gaps](generalization_gaps.csv),
 Run `./nasa/bin/python scripts/run_experiments.py --diagnostics --threads 6`
 to reproduce the check. It needs raw training data and local OOF predictions;
 it fits three temporary fold models without saving new model binaries.
+
+
+## Regularization follow-up
+
+The [bounded regularization comparison](../regularization/METHODS.md) tested
+smaller gaps against held-out prediction accuracy using inner-engine selection.
+It did not establish a reliable improvement, so the existing recipes are
+retained. This result does not establish that the original models are free of
+overfitting or that other regularization choices cannot help.

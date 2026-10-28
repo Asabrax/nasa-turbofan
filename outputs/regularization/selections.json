@@ -1,0 +1,293 @@
+[
+  {
+    "family": "TCN",
+    "fold": 1,
+    "seed": 42,
+    "winner": "baseline",
+    "candidates": [
+      {
+        "name": "baseline",
+        "inner_RMSE": 25.811775153912993,
+        "rounds": 24
+      },
+      {
+        "name": "regularized",
+        "inner_RMSE": 26.865899282643003,
+        "rounds": 36
+      }
+    ],
+    "parameters": 6993
+  },
+  {
+    "family": "TCN",
+    "fold": 1,
+    "seed": 101,
+    "winner": "baseline",
+    "candidates": [
+      {
+        "name": "baseline",
+        "inner_RMSE": 24.957456108318716,
+        "rounds": 30
+      },
+      {
+        "name": "regularized",
+        "inner_RMSE": 25.23917106187895,
+        "rounds": 52
+      }
+    ],
+    "parameters": 6993
+  },
+  {
+    "family": "TCN",
+    "fold": 1,
+    "seed": 73,
+    "winner": "baseline",
+    "candidates": [
+      {
+        "name": "baseline",
+        "inner_RMSE": 25.14085533450467,
+        "rounds": 27
+      },
+      {
+        "name": "regularized",
+        "inner_RMSE": 25.63011192489822,
+        "rounds": 52
+      }
+    ],
+    "parameters": 6993
+  },
+  {
+    "family": "TCN",
+    "fold": 2,
+    "seed": 101,
+    "winner": "baseline",
+    "candidates": [
+      {
+        "name": "baseline",
+        "inner_RMSE": 23.62959059906997,
+        "rounds": 37
+      },
+      {
+        "name": "regularized",
+        "inner_RMSE": 24.909873728829528,
+        "rounds": 48
+      }
+    ],
+    "parameters": 6993
+  },
+  {
+    "family": "TCN",
+    "fold": 2,
+    "seed": 73,
+    "winner": "baseline",
+    "candidates": [
+      {
+        "name": "baseline",
+        "inner_RMSE": 25.31101129869681,
+        "rounds": 22
+      },
+      {
+        "name": "regularized",
+        "inner_RMSE": 29.29536212576761,
+        "rounds": 15
+      }
+    ],
+    "parameters": 6993
+  },
+  {
+    "family": "TCN",
+    "fold": 3,
+    "seed": 73,
+    "winner": "baseline",
+    "candidates": [
+      {
+        "name": "baseline",
+        "inner_RMSE": 22.679736270837736,
+        "rounds": 33
+      },
+      {
+        "name": "regularized",
+        "inner_RMSE": 24.370098471480162,
+        "rounds": 43
+      }
+    ],
+    "parameters": 6993
+  },
+  {
+    "family": "TCN",
+    "fold": 2,
+    "seed": 42,
+    "winner": "baseline",
+    "candidates": [
+      {
+        "name": "baseline",
+        "inner_RMSE": 23.79043916139473,
+        "rounds": 25
+      },
+      {
+        "name": "regularized",
+        "inner_RMSE": 28.07476205907945,
+        "rounds": 21
+      }
+    ],
+    "parameters": 6993
+  },
+  {
+    "family": "TCN",
+    "fold": 3,
+    "seed": 42,
+    "winner": "baseline",
+    "candidates": [
+      {
+        "name": "baseline",
+        "inner_RMSE": 22.165325749278686,
+        "rounds": 30
+      },
+      {
+        "name": "regularized",
+        "inner_RMSE": 25.609487258782156,
+        "rounds": 32
+      }
+    ],
+    "parameters": 6993
+  },
+  {
+    "family": "XGBoost",
+    "fold": 1,
+    "seed": 42,
+    "winner": "strong_regularized",
+    "candidates": [
+      {
+        "name": "baseline",
+        "inner_RMSE": 27.9930727659177,
+        "rounds": 800,
+        "depth": 6,
+        "reg_lambda": 10,
+        "min_child_weight": 1
+      },
+      {
+        "name": "early_stop",
+        "inner_RMSE": 28.45468502382001,
+        "rounds": 338,
+        "depth": 6,
+        "reg_lambda": 10,
+        "min_child_weight": 1
+      },
+      {
+        "name": "shallow_regularized",
+        "inner_RMSE": 28.67399937459613,
+        "rounds": 346,
+        "depth": 4,
+        "reg_lambda": 20,
+        "min_child_weight": 10
+      },
+      {
+        "name": "strong_regularized",
+        "inner_RMSE": 27.897726101564427,
+        "rounds": 751,
+        "depth": 6,
+        "reg_lambda": 40,
+        "min_child_weight": 10
+      }
+    ]
+  },
+  {
+    "family": "TCN",
+    "fold": 3,
+    "seed": 101,
+    "winner": "baseline",
+    "candidates": [
+      {
+        "name": "baseline",
+        "inner_RMSE": 22.758829047723204,
+        "rounds": 29
+      },
+      {
+        "name": "regularized",
+        "inner_RMSE": 24.311319743214995,
+        "rounds": 40
+      }
+    ],
+    "parameters": 6993
+  },
+  {
+    "family": "XGBoost",
+    "fold": 2,
+    "seed": 42,
+    "winner": "early_stop",
+    "candidates": [
+      {
+        "name": "baseline",
+        "inner_RMSE": 27.357973433135466,
+        "rounds": 800,
+        "depth": 6,
+        "reg_lambda": 10,
+        "min_child_weight": 1
+      },
+      {
+        "name": "early_stop",
+        "inner_RMSE": 27.33370092664609,
+        "rounds": 386,
+        "depth": 6,
+        "reg_lambda": 10,
+        "min_child_weight": 1
+      },
+      {
+        "name": "shallow_regularized",
+        "inner_RMSE": 27.625886182289406,
+        "rounds": 384,
+        "depth": 4,
+        "reg_lambda": 20,
+        "min_child_weight": 10
+      },
+      {
+        "name": "strong_regularized",
+        "inner_RMSE": 27.437446570605097,
+        "rounds": 309,
+        "depth": 6,
+        "reg_lambda": 40,
+        "min_child_weight": 10
+      }
+    ]
+  },
+  {
+    "family": "XGBoost",
+    "fold": 3,
+    "seed": 42,
+    "winner": "baseline",
+    "candidates": [
+      {
+        "name": "baseline",
+        "inner_RMSE": 25.59453727082457,
+        "rounds": 800,
+        "depth": 6,
+        "reg_lambda": 10,
+        "min_child_weight": 1
+      },
+      {
+        "name": "early_stop",
+        "inner_RMSE": 25.72359363005111,
+        "rounds": 404,
+        "depth": 6,
+        "reg_lambda": 10,
+        "min_child_weight": 1
+      },
+      {
+        "name": "shallow_regularized",
+        "inner_RMSE": 25.62150281010158,
+        "rounds": 542,
+        "depth": 4,
+        "reg_lambda": 20,
+        "min_child_weight": 10
+      },
+      {
+        "name": "strong_regularized",
+        "inner_RMSE": 25.894597513036327,
+        "rounds": 374,
+        "depth": 6,
+        "reg_lambda": 40,
+        "min_child_weight": 10
+      }
+    ]
+  }
+]

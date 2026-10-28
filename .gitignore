@@ -47,3 +47,7 @@ Thumbs.db
 # Resumable TCN follow-up artifacts
 /outputs/tcn_followup/_runs/
 /outputs/tcn_followup/oof_predictions.csv
+
+# Local regularization fits and endpoint predictions
+/outputs/regularization/_runs/
+/outputs/regularization/oof_predictions.csv

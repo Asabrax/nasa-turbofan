@@ -53,6 +53,11 @@ engines, but the model is not free of fitting optimism. The
 [matched XGBoost check](outputs/experiments/METHODS.md#xgboost-overfitting-check)
 found a larger 8.14-cycle gap (17.79 training versus 25.93 validation RMSE).
 
+A [bounded regularization comparison](outputs/regularization/METHODS.md)
+reduced fitting gaps but did not reliably improve held-out accuracy. XGBoost's
+inner-selected recipe scored 26.06 versus 25.93 RMSE; the smaller TCN was rejected
+by inner validation in all nine fold/seed runs. The existing recipes are retained.
+
 ## Explore or reproduce
 
 The executed notebooks and HTML are ready to read. Download the HTML and open it
