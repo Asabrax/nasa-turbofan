@@ -134,3 +134,13 @@ Raw archives/data, `.joblib`/`.ubj`/`.keras` models, large OOF and trajectory ex
 duplicate notebook previews, and the superseded FD001-only experiment are
 excluded. Compact metrics and the inputs needed to rebuild the presentation stay
 tracked. Removing files from the current tree does not remove earlier Git history.
+
+
+## Sensor explanation visuals
+
+`./nasa/bin/python scripts/audit_sensors.py --visuals-only` regenerates the small
+sensor matrices using only development-engine histories. It does not retrain
+models or rerun the sensor ablation. Then execute and render the main notebook.
+The notebook saves `sensor_variation.png`, `sensor_correlation.png`, and a stable
+`test_rmse_by_dataset.png` for README links. These named images are included for
+presentation use; sequential `figure_*.png` exports remain local.

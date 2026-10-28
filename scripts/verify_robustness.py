@@ -64,5 +64,5 @@ for link in re.findall(r'href="([^"]+)"',html):
     if link.startswith('#'):assert link[1:] in ids,link
     elif not re.match(r'\w+://',link):assert (ROOT/link).exists(),link
 for head in re.findall(r'<thead>(.*?)</thead>',html,re.S):assert head.count('<tr')==1
-assert html.count('src="data:image/png;base64,')==7
+assert html.count('src="data:image/png;base64,')==8
 print('PASS: fixed model hash, disjoint engine roles, 50 endpoint metrics, 2,130 first-alert events, Wilson intervals, executed notebook and HTML links/tables/charts.')

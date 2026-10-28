@@ -31,7 +31,6 @@ Thumbs.db
 /outputs/*.*
 /outputs/**/notebook_preview.html
 /outputs/**/figure_*.png
-!/outputs/presentation/figure_03.png
 /outputs/experiments/oof_predictions.csv
 /outputs/presentation/sensor_ablation_oof.csv
 /outputs/robustness/heldout_history_predictions.csv

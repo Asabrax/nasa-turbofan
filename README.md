@@ -8,7 +8,7 @@ and a 150-cycle training target cap.
 [Downloadable HTML report](presentation.html) ·
 [Detailed experiments](experiments.ipynb)
 
-![Test RMSE by dataset](outputs/presentation/figure_03.png)
+![Test RMSE by dataset](outputs/presentation/test_rmse_by_dataset.png)
 
 ## Results
 
@@ -25,7 +25,8 @@ The maintenance event is actual RUL ≤30 cycles.
 - **Validation:** engine-separated development CV, a held-out audit, and five
   additional split-sensitivity checks. Normalization is fitted inside each fold.
 - **Sensors:** 17 of 21 survive variance filtering. Removing another three did
-  not establish a meaningful improvement.
+  not establish a meaningful improvement. See the [variation map](outputs/presentation/sensor_variation.png)
+  and [sensor correlation matrix](outputs/presentation/sensor_correlation.png).
 - **Limits:** broad early-life accuracy worsens. Calibrated recall has a 95%
   interval of 88.8–96.5%. The official test was previously observed; this is
   simulation-benchmark evidence, not a deployment or savings claim.

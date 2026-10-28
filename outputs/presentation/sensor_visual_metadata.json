@@ -1,0 +1,20 @@
+{
+  "engines": 567,
+  "rows": 129056,
+  "datasets": [
+    "FD001",
+    "FD002",
+    "FD003",
+    "FD004"
+  ],
+  "removed_sensors": [
+    "sensor_1",
+    "sensor_5",
+    "sensor_18",
+    "sensor_19"
+  ],
+  "correlation": "Pearson, dataset/regime-normalized instantaneous sensors; each engine-cycle has equal weight",
+  "normalization": "Descriptive fit on development engines only; not used to alter any model or CV pipeline",
+  "variation": "At least two distinct values within one dataset/operating-regime group",
+  "limitations": "Repeated cycles are not independent samples; correlation is not conditional importance or proof of redundancy"
+}
