@@ -788,16 +788,23 @@ The original XGBoost test headline and final model remain unchanged.</p>
 <a href="outputs/tcn_followup/paired_comparisons.csv">paired RMSE comparisons</a>, and
 <a href="outputs/tcn_followup/alert_intervals.csv">alert uncertainty intervals</a> retain
 the detailed evidence. No new audit or official-test evaluation was performed.</p>
-</div><div class="narrative"><h3>Overfitting: a measurable gap, with held-out gains</h3>
-<p>We reloaded the saved models and compared fitting and held-out engines using
-identical uncapped scoring, causal histories and endpoint rules. The table shows
-the 50-cycle TCN; each row is one random seed and pools squared errors across the same three folds.
-Training predictions include each engine in two fitting folds, while validation
-uses each engine once. These are descriptive gaps, not confidence intervals.</p>
+</div><div class="narrative"><h3>Overfitting: measurable gaps in both models</h3>
+<p>We compared fitting and held-out engines using identical uncapped scoring,
+causal histories and endpoint rules. TCN uses saved models; the frozen XGBoost
+recipe was refitted on the original folds and reproduced the saved validation
+predictions. Each row pools squared errors across three folds. Training includes
+each engine twice across different models, while validation uses it once.
+These are descriptive gaps, not confidence intervals.</p>
 </div><details class="code"><summary>View reproducible code</summary><pre><code>gaps=pd.read_csv(ROOT/&#x27;outputs/tcn_followup/generalization_summary.csv&#x27;)
-table=gaps[gaps.window.eq(50) &amp; gaps.protocol.eq(&#x27;primary&#x27;) &amp; gaps.subset.eq(&#x27;all&#x27;)]
-table=table[[&#x27;seed&#x27;,&#x27;training_RMSE&#x27;,&#x27;validation_RMSE&#x27;,&#x27;gap&#x27;]].set_index(&#x27;seed&#x27;)
-display(table.rename(columns={&#x27;training_RMSE&#x27;:&#x27;Training RMSE&#x27;,&#x27;validation_RMSE&#x27;:&#x27;Validation RMSE&#x27;,&#x27;gap&#x27;:&#x27;Gap&#x27;}).rename_axis(index=None).round(2))</code></pre></details><div class="table-wrap"><div>
+xgb_gaps=pd.read_csv(EXP/&#x27;generalization_summary.csv&#x27;)
+xgb=xgb_gaps[xgb_gaps.protocol.eq(&#x27;primary&#x27;) &amp; xgb_gaps.subset.eq(&#x27;all&#x27;)].iloc[0]
+rows=[{&#x27;Model / seed&#x27;:&#x27;XGBoost / 42&#x27;,&#x27;Training RMSE&#x27;:xgb.training_RMSE,
+       &#x27;Validation RMSE&#x27;:xgb.validation_RMSE,&#x27;Gap&#x27;:xgb.gap}]
+for row in gaps[gaps.window.eq(50) &amp; gaps.protocol.eq(&#x27;primary&#x27;) &amp; gaps.subset.eq(&#x27;all&#x27;)].itertuples():
+    rows.append({&#x27;Model / seed&#x27;:f&#x27;TCN 50 / {row.seed}&#x27;,&#x27;Training RMSE&#x27;:row.training_RMSE,
+                 &#x27;Validation RMSE&#x27;:row.validation_RMSE,&#x27;Gap&#x27;:row.gap})
+display(pd.DataFrame(rows).set_index(&#x27;Model / seed&#x27;).rename_axis(index=None).round(2))
+</code></pre></details><div class="table-wrap"><div>
 <style scoped>
     .dataframe tbody tr th:only-of-type {
         vertical-align: middle;
@@ -822,34 +829,41 @@ display(table.rename(columns={&#x27;training_RMSE&#x27;:&#x27;Training RMSE&#x27
   </thead>
   <tbody>
     <tr>
-      <th>42</th>
+      <th>XGBoost / 42</th>
+      <td>17.79</td>
+      <td>25.93</td>
+      <td>8.14</td>
+    </tr>
+    <tr>
+      <th>TCN 50 / 42</th>
       <td>19.13</td>
       <td>23.69</td>
       <td>4.56</td>
     </tr>
     <tr>
-      <th>73</th>
+      <th>TCN 50 / 73</th>
       <td>19.68</td>
       <td>23.59</td>
       <td>3.91</td>
     </tr>
     <tr>
-      <th>101</th>
+      <th>TCN 50 / 101</th>
       <td>18.66</td>
       <td>24.13</td>
       <td>5.46</td>
     </tr>
   </tbody>
 </table>
-</div></div><div class="narrative"><p><strong>Interpretation:</strong> the <strong>3.91–5.46-cycle gap</strong> supports concern about
-overfitting. The 50-cycle model nevertheless improves held-out RMSE across all
-three seeds. The gap persists below the 150-cycle cap; near failure (true RUL
-≤30), it is smaller at 0.21–1.55 cycles. Early stopping limits continued fitting
-but does not remove the gap.</p>
-<p>Engine separation, saved-prediction reproduction and future/target isolation
-checks passed. Repeated use of these development folds still creates selection
-risk; this is not proof of generalization to new fleets. See the
-<a href="outputs/tcn_followup/METHODS.md">overfitting methods and subgroup results</a>.</p>
+</div></div><div class="narrative"><p><strong>Interpretation:</strong> both models show fitting optimism. XGBoost's primary
+training–validation gap is <strong>8.14 cycles</strong>, versus <strong>3.91–5.46</strong> for the 50-cycle
+TCN. The gaps persist below the training cap. TCN has lower overall held-out
+error; near failure (true RUL ≤30), XGBoost has lower error: <strong>7.51 versus
+8.22–9.51 cycles</strong>. A generalization gap alone does not rank model usefulness.</p>
+<p>Engine separation, validation-prediction reproduction and future/target
+isolation checks passed. Repeated development-fold selection remains a risk;
+these checks do not prove generalization to new fleets. See the
+<a href="outputs/experiments/METHODS.md">XGBoost diagnostic</a> and
+<a href="outputs/tcn_followup/METHODS.md">TCN diagnostic</a> for subgroup results and limits.</p>
 </div><div class="narrative"><h2 id="13-what-we-can-defend-and-what-comes-next">13. What we can defend—and what comes next</h2>
 <p><strong>Supported:</strong> lower planning-window error across the tested splits and horizons,
 an explicit sensor ablation, uncertainty estimates for snapshot alerts, and a

@@ -74,6 +74,17 @@ Method details: [experiment protocol](../outputs/experiments/METHODS.md) and
 remain in the training logs. Repeated splits overlap and are sensitivity checks,
 not independent blind replications.
 
+## XGBoost fitting-gap diagnostic
+
+```bash
+./nasa/bin/python scripts/run_experiments.py --diagnostics --threads 6
+```
+
+This refits only the frozen configuration on the saved folds, checks the original
+OOF predictions, and compares fitting/validation endpoints. It does not rerun
+selection or modify the final model. See the
+[diagnostic interpretation](../outputs/experiments/METHODS.md#xgboost-overfitting-check).
+
 ## Optional sequence comparison
 
 [`run_sequences.py`](../scripts/run_sequences.py) compares a compact LSTM and TCN

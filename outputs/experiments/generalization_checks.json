@@ -1,0 +1,41 @@
+{
+  "config": {
+    "normalize": true,
+    "rich": true,
+    "cap": 150,
+    "balanced": false,
+    "cycle": true,
+    "asymmetric": false,
+    "separate": false,
+    "depth": 6,
+    "trees": 800,
+    "learning_rate": 0.03,
+    "name": "tuned_d6_n800"
+  },
+  "fold_checks": [
+    {
+      "fold": 1,
+      "fit_engines": 378,
+      "validation_engines": 189,
+      "maximum_prediction_difference": 1.4210854715202004e-14,
+      "seconds": 14.125133711961098
+    },
+    {
+      "fold": 2,
+      "fit_engines": 378,
+      "validation_engines": 189,
+      "maximum_prediction_difference": 1.4210854715202004e-14,
+      "seconds": 13.703059596999083
+    },
+    {
+      "fold": 3,
+      "fit_engines": 378,
+      "validation_engines": 189,
+      "maximum_prediction_difference": 1.4210854715202004e-14,
+      "seconds": 13.819928704004269
+    }
+  ],
+  "original_model_sha256": "bbc9b52f50b7f4548465d7fb348960713d7597f9d82673a805ebadf8039c3ae5",
+  "interpretation": "Descriptive matched-endpoint gaps; repeated development folds, not fresh blind evaluation",
+  "completed_utc": "2026-10-28T13:53:26.621804+00:00"
+}

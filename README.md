@@ -49,7 +49,9 @@ at 30 cycles did not consistently help. These follow-up development results do
 not replace the XGBoost official-test results; TCN still needs independent validation.
 The [overfitting check](outputs/tcn_followup/METHODS.md#overfitting-check) found
 a 3.91–5.46-cycle training/validation gap: the improvement survives on held-out
-engines, but the model is not free of fitting optimism.
+engines, but the model is not free of fitting optimism. The
+[matched XGBoost check](outputs/experiments/METHODS.md#xgboost-overfitting-check)
+found a larger 8.14-cycle gap (17.79 training versus 25.93 validation RMSE).
 
 ## Explore or reproduce
 

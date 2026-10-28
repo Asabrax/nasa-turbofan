@@ -110,6 +110,11 @@ and validation target distributions match, but fitting predictions are repeated
 across two models. These counts are not independent replications or a paired
 confidence interval for the gap. RUL-band analyses filter both sides identically.
 
+The [matched XGBoost check](../experiments/METHODS.md#xgboost-overfitting-check)
+found a larger primary gap: 17.79 training versus 25.93 validation RMSE (+8.14).
+XGBoost nevertheless has lower near-failure validation RMSE (7.51 versus
+8.22–9.51 for TCN). A smaller generalization gap is not a universal model ranking.
+
 ## Predeclared comparison
 
 The existing 567 development engines, three outer folds and evaluation endpoints

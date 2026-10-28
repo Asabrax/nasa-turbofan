@@ -281,10 +281,88 @@ def run(threads=6):
     return result
 
 
+def diagnostics(threads=6):
+    """Refit only the frozen recipe to measure matching training/validation gaps."""
+    config=json.loads((OUT/'frozen_selection.json').read_text())['selected_config']
+    original=OUT/'selected_model.joblib'
+    before=hashlib.sha256(original.read_bytes()).hexdigest()
+    train,_,_=load_inputs()
+    folds=pd.read_csv(OUT/'cv_engine_folds.csv')
+    points=pd.read_csv(OUT/'validation_endpoints.csv')
+    saved=pd.read_csv(OUT/'oof_predictions.csv')
+    saved=saved[saved.candidate.eq(config['name'])]
+    rows=[];checks=[]
+    for fold in [1,2,3]:
+        started=time.perf_counter()
+        fit=train[train.engine_key.isin(folds.loc[folds.fold.ne(fold),'engine_key'])]
+        valid=train[train.engine_key.isin(folds.loc[folds.fold.eq(fold),'engine_key'])]
+        assert set(fit.engine_key).isdisjoint(valid.engine_key)
+        model=ExperimentRegressor(config,threads).fit(fit)
+        assert model.features_.fit_engines_.isdisjoint(valid.engine_key)
+        predictions=[]
+        for frame in [fit,valid]:
+            p=points[points.engine_key.isin(frame.engine_key)].copy()
+            pred=pd.Series(model.predict(frame),index=frame.index)
+            p['prediction']=pred.loc[p.row_index].to_numpy()
+            predictions.append(p)
+        a,b=predictions
+        comparison=b.merge(saved[saved.fold.eq(fold)],on=['engine_key','row_index','protocol','snapshot'],validate='one_to_one')
+        assert len(comparison)==1134
+        np.testing.assert_allclose(comparison.prediction,comparison.predicted_RUL,rtol=1e-6,atol=1e-4)
+        for dataset_name in DATASETS:
+            key=valid.loc[valid.dataset.eq(dataset_name),'engine_key'].iloc[0]
+            history=valid[valid.engine_key.eq(key)].sort_values('cycle').copy()
+            prefix=history.iloc[:35].copy();endpoint=prefix.index[-1]
+            expected=model.features_.transform(history).loc[[endpoint]]
+            changed=history.copy();changed['RUL']=-999
+            sensor_columns=[c for c in changed if c.startswith('sensor_')]
+            changed.loc[changed.index[35:],sensor_columns]=1e6
+            pd.testing.assert_frame_equal(expected,model.features_.transform(changed).loc[[endpoint]])
+            pd.testing.assert_frame_equal(expected,model.features_.transform(prefix).loc[[endpoint]])
+        for protocol in ['primary','broad']:
+            for subset in ['all']+DATASETS+['RUL_le150','RUL_le30']:
+                def select(frame):
+                    mask=frame.protocol.eq(protocol)
+                    if subset in DATASETS:mask &= frame.dataset.eq(subset)
+                    elif subset=='RUL_le150':mask &= frame.actual_RUL.le(150)
+                    elif subset=='RUL_le30':mask &= frame.actual_RUL.le(30)
+                    return frame[mask]
+                aa,bb=select(a),select(b)
+                train_sse=float(np.sum((aa.prediction-aa.actual_RUL)**2))
+                valid_sse=float(np.sum((bb.prediction-bb.actual_RUL)**2))
+                tr=np.sqrt(train_sse/len(aa));va=np.sqrt(valid_sse/len(bb))
+                rows.append(dict(candidate=config['name'],fold=fold,protocol=protocol,subset=subset,
+                    training_n=len(aa),validation_n=len(bb),training_SSE=train_sse,validation_SSE=valid_sse,
+                    training_RMSE=tr,validation_RMSE=va,gap=va-tr))
+        checks.append(dict(fold=fold,fit_engines=fit.engine_key.nunique(),validation_engines=valid.engine_key.nunique(),
+            maximum_prediction_difference=float(np.max(np.abs(comparison.prediction-comparison.predicted_RUL))),
+            seconds=time.perf_counter()-started))
+        print(f'Checked XGBoost fold {fold}/3 in {checks[-1]["seconds"]:.1f}s',flush=True)
+    gaps=pd.DataFrame(rows);assert len(gaps)==42
+    gaps.to_csv(OUT/'generalization_gaps.csv',index=False)
+    pooled=[]
+    for (protocol,subset),g in gaps.groupby(['protocol','subset']):
+        assert g.fold.nunique()==3 and g.training_n.sum()==2*g.validation_n.sum()
+        tr=np.sqrt(g.training_SSE.sum()/g.training_n.sum());va=np.sqrt(g.validation_SSE.sum()/g.validation_n.sum())
+        pooled.append(dict(candidate=config['name'],protocol=protocol,subset=subset,training_RMSE=tr,
+            validation_RMSE=va,gap=va-tr,minimum_fold_gap=g.gap.min(),maximum_fold_gap=g.gap.max()))
+    pd.DataFrame(pooled).to_csv(OUT/'generalization_summary.csv',index=False)
+    assert hashlib.sha256(original.read_bytes()).hexdigest()==before
+    evidence=dict(config=config,fold_checks=checks,original_model_sha256=before,
+        interpretation='Descriptive matched-endpoint gaps; repeated development folds, not fresh blind evaluation',
+        completed_utc=datetime.now(timezone.utc).isoformat())
+    (OUT/'generalization_checks.json').write_text(json.dumps(evidence,indent=2)+'\n')
+    print('PASS: original OOF predictions reproduced; disjoint engines, causal features, matched uncapped scoring and unchanged final model.')
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--threads', type=int, default=6)
+    parser.add_argument('--diagnostics', action='store_true')
     args = parser.parse_args()
     if args.threads < 1:
         parser.error('--threads must be positive')
-    run(args.threads)
+    if args.diagnostics:
+        diagnostics(args.threads)
+    else:
+        run(args.threads)
