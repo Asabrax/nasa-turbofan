@@ -49,6 +49,67 @@ Saved models were reloaded and their predictions reproduced for both window
 lengths. Verification also checked all 30,618 scored rows, engine separation,
 inner-only thresholds, epoch selection and the original model checksum.
 
+## Overfitting check
+
+**Assessment: measurable fitting optimism; the held-out improvement survives.**
+Saved outer refits were reloaded and scored in inference mode on their fitting
+engines and separate validation engines, using the same uncapped endpoint
+protocol. All 27 configurations were checked, including 30-cycle controls.
+
+| 50-cycle TCN seed | Training primary RMSE | Validation primary RMSE | Gap |
+| --- | ---: | ---: | ---: |
+| 42 | 19.13 | 23.69 | +4.56 |
+| 73 | 19.68 | 23.59 | +3.91 |
+| 101 | 18.66 | 24.13 | +5.46 |
+
+The primary gap is positive in all nine 50-cycle fold/seed runs. It is larger
+than the 30-cycle control's pooled gap of 1.85–4.41 cycles. This supports concern
+about overfitting; it does not negate the better held-out error of the longer
+history. A generalization gap also reflects sampling and model variation and
+is not a binary test or proof of memorization.
+
+The gap remains **4.31–5.60 cycles for primary endpoints with true RUL ≤150**,
+where uncapped labels do not exceed the training cap. For **true RUL ≤30**, the
+gap is only **0.21–1.55 cycles** (training RMSE 7.95–8.85; validation 8.22–9.51).
+Pooled per-dataset primary gaps are largest on FD003 (5.46–7.16) and FD004
+(4.70–6.55); these differences do not establish a causal explanation.
+Broad-protocol gaps are 2.00–2.65 cycles, with both fitting and validation error
+remaining high because of early-life prediction limitations.
+
+The inner learning curves show training loss decreasing after the selected
+epoch while inner validation error ends 0.08–0.62 cycles higher. Early stopping
+retains the earlier epoch, and the outer model is refitted for that epoch count.
+This pattern is expected after selecting a best epoch; it is not independent
+proof that early stopping eliminates overfitting. Logged training loss has capped
+labels and dropout active, so it must not be compared directly with uncapped
+validation RMSE. The table above recomputes both scores on matching definitions.
+
+**Leakage checks:** fitting, stopping and outer evaluation engine roles are
+separate as required; normalization and channel filtering use fitting engines
+only. Reloaded predictions match the saved outer predictions. Twenty-four
+prefix checks (four datasets × three folds × two histories) confirm that
+removing future rows, replacing future sensor values and changing RUL labels
+cannot change a prediction window at the checked endpoint.
+
+**Remaining limitation:** history length and other decisions were assessed on
+already-studied development folds. Three seeds are not independent engine
+replications, and conditional bootstrap intervals exclude selection uncertainty.
+The audit and official test have also been seen in earlier work; neither should
+be relabeled a fresh blind benchmark. Freeze the candidate and use a new
+predeclared engine split as a sensitivity check, or preferably genuinely unseen
+external engines, before claiming broader generalization. No new holdout was
+scored and no model was retrained during this diagnostic.
+
+Evidence: [fold and subgroup gaps](generalization_gaps.csv),
+[pooled summaries](generalization_summary.csv) and
+[stopping diagnostics](stopping_diagnostics.csv).
+Pooled RMSE is computed from summed squared errors and counts, never by averaging
+fold RMSE. Each development engine contributes three endpoints per protocol:
+it appears in two fitting folds and one validation fold. Thus pooled training
+and validation target distributions match, but fitting predictions are repeated
+across two models. These counts are not independent replications or a paired
+confidence interval for the gap. RUL-band analyses filter both sides identically.
+
 ## Predeclared comparison
 
 The existing 567 development engines, three outer folds and evaluation endpoints
@@ -126,6 +187,7 @@ model-selection procedures.
 ./nasa/bin/python -m pip install -r requirements-sequences.txt
 ./nasa/bin/python scripts/run_tcn_followup.py
 ./nasa/bin/python scripts/run_tcn_followup.py --verify
+./nasa/bin/python scripts/run_tcn_followup.py --diagnostics
 ```
 
 Two local CPU workers each use three TensorFlow intra-operation threads. A

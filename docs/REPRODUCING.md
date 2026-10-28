@@ -98,6 +98,7 @@ calibration. Completed jobs are resumable; large per-job artifacts stay local.
 ```bash
 ./nasa/bin/python scripts/run_tcn_followup.py
 ./nasa/bin/python scripts/run_tcn_followup.py --verify
+./nasa/bin/python scripts/run_tcn_followup.py --diagnostics
 ```
 
 See the [follow-up protocol](../outputs/tcn_followup/METHODS.md). The existing

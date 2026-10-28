@@ -249,6 +249,92 @@ def run():
     log('COMPLETE: 18 jobs, 27 scored fold models; original final XGBoost unchanged.')
 
 
+def diagnostics():
+    """Score saved refits on matching train/validation endpoint protocols."""
+    tf.config.threading.set_intra_op_parallelism_threads(3)
+    tf.config.threading.set_inter_op_parallelism_threads(1)
+    fits=pd.read_csv(OUT/'fits.csv')
+    points=pd.read_csv(ROOT/'outputs/experiments/validation_endpoints.csv')
+    original=ROOT/'outputs/experiments/selected_model.joblib'
+    before=hashlib.sha256(original.read_bytes()).hexdigest()
+    rows=[];curve_rows=[]
+    for fold in [1,2,3]:
+        train,outer,valid,inner_fit,stop,stop_points,eval_points=prepare(fold)
+        fit_points=points[points.engine_key.isin(outer.engine_key)].copy()
+        assert set(fit_points.engine_key).isdisjoint(eval_points.engine_key)
+        processor=seq.SequenceInputs().fit(outer)
+        for window in WINDOWS:
+            seq.WINDOW=window
+            Xfit,_,fit_order=windows(processor,outer,fit_points)
+            Xvalid,_,valid_order=windows(processor,valid,eval_points)
+            for dataset_name in DATASETS:
+                key=valid.loc[valid.dataset.eq(dataset_name),'engine_key'].iloc[0]
+                history=valid[valid.engine_key.eq(key)].sort_values('cycle').copy()
+                endpoint=history.index[22]
+                expected=processor.windows(history,[endpoint])[0]
+                altered=history.copy();altered['RUL']=-999
+                altered.loc[altered.index[23:],seq.SENSORS]=1e6
+                np.testing.assert_array_equal(expected,processor.windows(altered,[endpoint])[0])
+                np.testing.assert_array_equal(expected,processor.windows(history.iloc[:23],[endpoint])[0])
+            cache={}
+            for item in fits[(fits.fold==fold)&(fits.window==window)].itertuples():
+                run=OUT/'_runs'/f'w{window}_f{fold}_s{item.seed}'
+                key=(item.seed,item.selected_epoch)
+                if key not in cache:
+                    model=tf.keras.models.load_model(run/f'outer_epoch{item.selected_epoch}.keras')
+                    cache[key]=(seq.predict(model,Xfit)[fit_order],seq.predict(model,Xvalid)[valid_order])
+                    del model
+                    tf.keras.backend.clear_session()
+                fit_pred,valid_pred=cache[key]
+                saved=pd.read_csv(run/f'predictions_{item.budget}.csv')
+                np.testing.assert_allclose(valid_pred,saved.predicted_RUL,rtol=1e-5,atol=.001)
+                a=fit_points.copy();a['prediction']=fit_pred
+                b=eval_points.copy();b['prediction']=valid_pred
+                for protocol in ['primary','broad']:
+                    for subset in ['all']+DATASETS+['RUL_le150','RUL_le30']:
+                        def select(frame):
+                            mask=frame.protocol.eq(protocol)
+                            if subset in DATASETS:mask &= frame.dataset.eq(subset)
+                            elif subset=='RUL_le150':mask &= frame.actual_RUL.le(150)
+                            elif subset=='RUL_le30':mask &= frame.actual_RUL.le(30)
+                            return frame[mask]
+                        aa,bb=select(a),select(b)
+                        train_sse=float(np.sum((aa.prediction-aa.actual_RUL)**2))
+                        valid_sse=float(np.sum((bb.prediction-bb.actual_RUL)**2))
+                        train_rmse=np.sqrt(train_sse/len(aa));valid_rmse=np.sqrt(valid_sse/len(bb))
+                        rows.append(dict(window=window,budget=item.budget,seed=item.seed,fold=fold,
+                            protocol=protocol,subset=subset,training_n=len(aa),validation_n=len(bb),
+                            training_SSE=train_sse,validation_SSE=valid_sse,
+                            training_RMSE=train_rmse,validation_RMSE=valid_rmse,gap=valid_rmse-train_rmse))
+                curve=pd.read_csv(run/'curves.csv');curve=curve[curve.epoch<=item.budget]
+                selected=curve[curve.epoch.eq(item.selected_epoch)].iloc[0];last=curve.iloc[-1]
+                curve_rows.append(dict(window=window,budget=item.budget,seed=item.seed,fold=fold,
+                    selected_epoch=item.selected_epoch,last_epoch=int(last.epoch),
+                    selected_inner_RMSE=selected.inner_primary_RMSE,last_inner_RMSE=last.inner_primary_RMSE,
+                    inner_change_after_selection=last.inner_primary_RMSE-selected.inner_primary_RMSE,
+                    selected_training_loss_RMSE=selected.training_capped_RMSE,
+                    last_training_loss_RMSE=last.training_capped_RMSE))
+                print(f'Diagnosed window={window}, fold={fold}, seed={item.seed}, budget={item.budget}',flush=True)
+            del Xfit,Xvalid;gc.collect()
+    gaps=pd.DataFrame(rows)
+    assert len(gaps)==27*2*7
+    all_rows=gaps[gaps.subset.eq('all')]
+    assert all_rows.training_n.eq(1134).all() and all_rows.validation_n.eq(567).all()
+    gaps.to_csv(OUT/'generalization_gaps.csv',index=False)
+    pd.DataFrame(curve_rows).to_csv(OUT/'stopping_diagnostics.csv',index=False)
+    pooled=[]
+    for keys,g in gaps.groupby(['window','budget','seed','protocol','subset']):
+        assert g.fold.nunique()==3
+        tr=np.sqrt(g.training_SSE.sum()/g.training_n.sum())
+        va=np.sqrt(g.validation_SSE.sum()/g.validation_n.sum())
+        pooled.append(dict(zip(['window','budget','seed','protocol','subset'],keys),
+            training_RMSE=tr,validation_RMSE=va,gap=va-tr,
+            minimum_fold_gap=g.gap.min(),maximum_fold_gap=g.gap.max()))
+    pd.DataFrame(pooled).to_csv(OUT/'generalization_summary.csv',index=False)
+    assert hashlib.sha256(original.read_bytes()).hexdigest()==before
+    print('PASS: 27 saved fold configurations; matched uncapped scoring, disjoint engines, future/target isolation, reproduced validation predictions and unchanged XGBoost.')
+
+
 def verify():
     protocol=json.loads((OUT/'protocol.json').read_text())
     predictions=pd.read_csv(OUT/'oof_predictions.csv');metrics=pd.read_csv(OUT/'metrics.csv');fits=pd.read_csv(OUT/'fits.csv')
@@ -299,9 +385,11 @@ def verify():
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--worker',nargs=3,type=int)
     parser.add_argument('--verify',action='store_true')
+    parser.add_argument('--diagnostics',action='store_true')
     parser.add_argument('--summarize',action='store_true');args=parser.parse_args()
     if args.worker:worker(*args.worker)
     elif args.verify:verify()
+    elif args.diagnostics:diagnostics()
     elif args.summarize:
         pred,metrics=summarize()
         assert len(pred)==30618
