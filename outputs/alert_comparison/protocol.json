@@ -1,0 +1,35 @@
+{
+  "target_recall": 0.9,
+  "event": "actual RUL <=30",
+  "primary_protocol": "primary",
+  "rule": "Smallest threshold achieving >=90% inner recall; transfer unchanged to outer refit",
+  "inner_fit_engines": 302,
+  "inner_calibration_engines": 76,
+  "outer_fit_engines": 378,
+  "outer_evaluation_engines": 189,
+  "xgboost_config": {
+    "normalize": true,
+    "rich": true,
+    "cap": 150,
+    "balanced": false,
+    "cycle": true,
+    "asymmetric": false,
+    "separate": false,
+    "depth": 6,
+    "trees": 800,
+    "learning_rate": 0.03,
+    "name": "tuned_d6_n800"
+  },
+  "tcn_window": 50,
+  "tcn_seeds": [
+    42,
+    73,
+    101
+  ],
+  "bootstrap_draws": 2000,
+  "final_model_sha256": "bbc9b52f50b7f4548465d7fb348960713d7597f9d82673a805ebadf8039c3ae5",
+  "folds_sha256": "02cf12b8428160f1e10d69ca47193d43e8aaa9f097126ef898d541bcaebbca2d",
+  "endpoints_sha256": "61e80a1b59d6548f67a5463b3d00215cba323f5f247d0dd2579c9c8972afe3ba",
+  "xgboost_oof_sha256": "e8e8b1313c7b5dc302a05a366c9124663dcb38197968b2665009f3dd4ab4c433",
+  "tcn_fits_sha256": "30332cf9e55af8f7a62a47d16bc4b5b8d6328ce48ad4430645dfdfde88c8d334"
+}

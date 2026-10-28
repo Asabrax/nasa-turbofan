@@ -59,6 +59,12 @@ reduced fitting gaps but did not reliably improve held-out accuracy. XGBoost's
 inner-selected recipe scored 26.06 versus 25.93 RMSE; the smaller TCN was rejected
 by inner validation in all nine fold/seed runs. The existing recipes are retained.
 
+A [matched alert comparison](outputs/alert_comparison/METHODS.md) calibrated both
+families on identical inner splits to target 90% recall. TCN achieved 90.8–93.5%
+recall with 23–30 false alerts, versus XGBoost's 90.4% and 36, on the same 1,701
+outer snapshots. This favors TCN's observed tradeoff, but all paired recall
+intervals include zero. See the [confusion matrices](outputs/presentation/matched_alert_confusion.png).
+
 ## Explore or reproduce
 
 The executed notebooks and HTML are ready to read. Download the HTML and open it

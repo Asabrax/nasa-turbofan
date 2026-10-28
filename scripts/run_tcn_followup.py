@@ -335,6 +335,127 @@ def diagnostics():
     print('PASS: 27 saved fold configurations; matched uncapped scoring, disjoint engines, future/target isolation, reproduced validation predictions and unchanged XGBoost.')
 
 
+def compare_alerts():
+    """Compare frozen model families under identical inner-only recall calibration."""
+    import joblib
+    from experiment_models import ExperimentRegressor
+    target=ROOT/'outputs/alert_comparison';target.mkdir(parents=True,exist_ok=True)
+    local=target/'_runs';local.mkdir(exist_ok=True)
+    original=ROOT/'outputs/experiments/selected_model.joblib'
+    digest=lambda path:hashlib.sha256(path.read_bytes()).hexdigest()
+    config=json.loads((ROOT/'outputs/experiments/frozen_selection.json').read_text())['selected_config']
+    plan=dict(target_recall=.90,event='actual RUL <=30',primary_protocol='primary',
+        rule='Smallest threshold achieving >=90% inner recall; transfer unchanged to outer refit',
+        inner_fit_engines=302,inner_calibration_engines=76,outer_fit_engines=378,outer_evaluation_engines=189,
+        xgboost_config=config,tcn_window=50,tcn_seeds=SEEDS,bootstrap_draws=2000,
+        final_model_sha256=digest(original),
+        folds_sha256=digest(ROOT/'outputs/experiments/cv_engine_folds.csv'),
+        endpoints_sha256=digest(ROOT/'outputs/experiments/validation_endpoints.csv'),
+        xgboost_oof_sha256=digest(ROOT/'outputs/experiments/oof_predictions.csv'),
+        tcn_fits_sha256=digest(OUT/'fits.csv'))
+    if (target/'protocol.json').exists():assert json.loads((target/'protocol.json').read_text())==plan
+    else:write_json(target/'protocol.json',plan)
+    tf.config.threading.set_intra_op_parallelism_threads(3)
+    tf.config.threading.set_inter_op_parallelism_threads(1)
+    seq.WINDOW=50
+    xgb_oof=pd.read_csv(ROOT/'outputs/experiments/oof_predictions.csv')
+    xgb_oof=xgb_oof[xgb_oof.candidate.eq(config['name'])]
+    predictions=[];calibrations=[]
+    cols=['row_index','engine_key','dataset','engine_id','cycle','actual_RUL','protocol','snapshot']
+    for fold in [1,2,3]:
+        train,outer,valid,fit,stop,stop_points,eval_points=prepare(fold)
+        assert fit.engine_key.nunique()==302 and stop.engine_key.nunique()==76
+        assert set(fit.engine_key).isdisjoint(stop.engine_key)
+        assert set(outer.engine_key).isdisjoint(valid.engine_key)
+        inner_model=ExperimentRegressor(config,threads=3).fit(fit)
+        assert inner_model.features_.fit_engines_==set(fit.engine_key)
+        inner=stop_points.copy()
+        inner['predicted_RUL']=pd.Series(inner_model.predict(stop),index=stop.index).loc[inner.row_index].to_numpy()
+        joblib.dump(inner_model,local/f'xgb_inner_fold{fold}.joblib')
+        inner.to_csv(local/f'xgb_inner_fold{fold}.csv',index=False)
+        outer_xgb=xgb_oof[xgb_oof.fold.eq(fold)][cols+['predicted_RUL']].copy()
+        # Reuse independently refitted baseline from the regularization comparison.
+        transformer,selector,model=joblib.load(ROOT/'outputs/regularization/_runs'/f'XGBoost_f{fold}_s42'/'outer_baseline.joblib')
+        assert transformer.fit_engines_==set(outer.engine_key)
+        actual=np.maximum(0,model.predict(selector.transform(transformer.transform(valid).loc[eval_points.row_index])))
+        np.testing.assert_allclose(actual,outer_xgb.predicted_RUL,rtol=1e-6,atol=1e-4)
+        groups=[('XGBoost',42,inner,outer_xgb)]
+        proc=seq.SequenceInputs().fit(fit)
+        Xstop,_,stop_order=windows(proc,stop,stop_points)
+        proc_outer=seq.SequenceInputs().fit(outer)
+        Xouter,_,outer_order=windows(proc_outer,valid,eval_points)
+        for seed in SEEDS:
+            folder=OUT/'_runs'/f'w50_f{fold}_s{seed}'
+            inner_tcn=pd.read_csv(folder/'inner_best.csv')
+            record=json.loads((folder/'done.json').read_text())[0]
+            network=tf.keras.models.load_model(folder/'inner_best.keras')
+            np.testing.assert_allclose(seq.predict(network,Xstop)[stop_order],inner_tcn.predicted_RUL,rtol=1e-5,atol=.001)
+            network=tf.keras.models.load_model(folder/f'outer_epoch{record["selected_epoch"]}.keras')
+            outer_tcn=pd.read_csv(folder/'predictions_60.csv')[cols+['predicted_RUL']]
+            np.testing.assert_allclose(seq.predict(network,Xouter)[outer_order],outer_tcn.predicted_RUL,rtol=1e-5,atol=.001)
+            groups.append(('TCN',seed,inner_tcn,outer_tcn))
+            del network;tf.keras.backend.clear_session()
+        for family,seed,inner,heldout in groups:
+            pd.testing.assert_frame_equal(inner[cols].reset_index(drop=True),stop_points[cols].reset_index(drop=True),check_dtype=False)
+            pd.testing.assert_frame_equal(heldout[cols].reset_index(drop=True),eval_points[cols].reset_index(drop=True),check_dtype=False)
+            t=threshold(inner.actual_RUL,inner.predicted_RUL)
+            events=inner.actual_RUL.le(30);flags=inner.predicted_RUL.le(t)
+            assert (events&flags).sum()/events.sum()>=.90
+            below=inner.predicted_RUL.le(np.nextafter(t,-np.inf))
+            assert (events&below).sum()/events.sum()<.90
+            calibrations.append(dict(model=family,seed=seed,fold=fold,threshold=t,
+                calibration_endpoints=len(inner),calibration_events=int(events.sum()),
+                calibration_recall=float((events&flags).sum()/events.sum())))
+            for rule,cutoff in [('fixed_30',30.),('inner_calibrated',t)]:
+                p=heldout.copy();p['model']=family;p['seed']=seed;p['fold']=fold;p['rule']=rule;p['threshold']=cutoff
+                p['alert']=p.predicted_RUL.le(cutoff);p['event']=p.actual_RUL.le(30)
+                p['TP']=(p.alert&p.event).astype(int);p['FP']=(p.alert&~p.event).astype(int)
+                p['FN']=(~p.alert&p.event).astype(int);p['TN']=(~p.alert&~p.event).astype(int)
+                predictions.append(p)
+        print(f'Calibrated and verified both families on fold {fold}/3',flush=True)
+    pred=pd.concat(predictions,ignore_index=True)
+    assert len(pred)==27216
+    pred.to_csv(target/'oof_predictions.csv',index=False)
+    pd.DataFrame(calibrations).to_csv(target/'calibration.csv',index=False)
+    def ratios(counts):
+        tp,fp,fn,tn=np.moveaxis(np.asarray(counts),-1,0)
+        assert np.all(tp+fn>0) and np.all(fp+tn>0) and np.all(tp+fp>0)
+        return np.stack([tp/(tp+fn),tp/(tp+fp),fp/(fp+tn)],axis=-1)
+    names=['recall','precision','false_positive_rate'];count_cols=['TP','FP','FN','TN']
+    totals=[];folds=[];intervals=[];pairs=[]
+    keys=['model','seed','protocol','rule']
+    for values,g in pred.groupby(keys):
+        base=dict(zip(keys,values));counts=g[count_cols].sum().to_numpy()
+        assert len(g)==1701 and g.engine_key.nunique()==567
+        totals.append(dict(**base,n=len(g),**dict(zip(count_cols,map(int,counts))),**dict(zip(names,ratios(counts)))))
+        for fold,f in g.groupby('fold'):
+            cc=f[count_cols].sum().to_numpy()
+            folds.append(dict(**base,fold=fold,threshold=f.threshold.iloc[0],n=len(f),**dict(zip(count_cols,map(int,cc))),**dict(zip(names,ratios(cc)))))
+        by_engine=g.groupby('engine_key')[count_cols].sum()
+        rng=np.random.default_rng(42);ix=rng.integers(0,len(by_engine),(2000,len(by_engine)))
+        boot=ratios(by_engine.to_numpy()[ix].sum(axis=1))
+        for j,name in enumerate(names):
+            low,high=np.quantile(boot[:,j],[.025,.975])
+            intervals.append(dict(**base,metric=name,estimate=ratios(counts)[j],lower95=low,upper95=high))
+        if base['model']=='TCN':
+            ref=pred[pred.model.eq('XGBoost')&pred.protocol.eq(base['protocol'])&pred.rule.eq(base['rule'])]
+            ref_counts=ref.groupby('engine_key')[count_cols].sum().loc[by_engine.index]
+            ref_boot=ratios(ref_counts.to_numpy()[ix].sum(axis=1))
+            point=ratios(counts)-ratios(ref_counts.sum().to_numpy())
+            for j,name in enumerate(names):
+                low,high=np.quantile(boot[:,j]-ref_boot[:,j],[.025,.975])
+                pairs.append(dict(seed=base['seed'],protocol=base['protocol'],rule=base['rule'],metric=name,
+                    difference=point[j],lower95=low,upper95=high,meaning='TCN minus XGBoost; fractions, not percentage points'))
+    pd.DataFrame(totals).to_csv(target/'metrics.csv',index=False)
+    pd.DataFrame(folds).to_csv(target/'fold_metrics.csv',index=False)
+    pd.DataFrame(intervals).to_csv(target/'intervals.csv',index=False)
+    pd.DataFrame(pairs).to_csv(target/'paired_comparisons.csv',index=False)
+    assert digest(original)==plan['final_model_sha256']
+    write_json(target/'results.json',dict(completed_utc=datetime.now(timezone.utc).isoformat(),calibrations=12,
+        outer_engines=567,endpoints_per_model_protocol=1701,models_reproduced=True,final_model_unchanged=True))
+    print('PASS: identical calibration/evaluation endpoints, minimum inner thresholds, reproduced outer models and unchanged final XGBoost.')
+
+
 def verify():
     protocol=json.loads((OUT/'protocol.json').read_text())
     predictions=pd.read_csv(OUT/'oof_predictions.csv');metrics=pd.read_csv(OUT/'metrics.csv');fits=pd.read_csv(OUT/'fits.csv')
@@ -386,10 +507,12 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--worker',nargs=3,type=int)
     parser.add_argument('--verify',action='store_true')
     parser.add_argument('--diagnostics',action='store_true')
+    parser.add_argument('--compare-alerts',action='store_true')
     parser.add_argument('--summarize',action='store_true');args=parser.parse_args()
     if args.worker:worker(*args.worker)
     elif args.verify:verify()
     elif args.diagnostics:diagnostics()
+    elif args.compare_alerts:compare_alerts()
     elif args.summarize:
         pred,metrics=summarize()
         assert len(pred)==30618

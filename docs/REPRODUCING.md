@@ -144,3 +144,13 @@ models or rerun the sensor ablation. Then execute and render the main notebook.
 The notebook saves `sensor_variation.png`, `sensor_correlation.png`, and a stable
 `test_rmse_by_dataset.png` for README links. These named images are included for
 presentation use; sequential `figure_*.png` exports remain local.
+
+
+## Matched alert calibration
+
+After the TCN follow-up and regularization experiments, run
+`./nasa/bin/python scripts/run_tcn_followup.py --compare-alerts`.
+It fits three inner XGBoost models, reuses/reproduces saved outer predictions,
+and calibrates both families with the same rule and engine endpoints. The final
+model remains unchanged. See the [protocol](../outputs/alert_comparison/METHODS.md).
+Then rebuild the notebook and HTML to export the matched confusion matrices.

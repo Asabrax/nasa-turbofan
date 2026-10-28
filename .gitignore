@@ -50,3 +50,7 @@ Thumbs.db
 # Local regularization fits and endpoint predictions
 /outputs/regularization/_runs/
 /outputs/regularization/oof_predictions.csv
+
+# Local matched-alert calibration artifacts
+/outputs/alert_comparison/_runs/
+/outputs/alert_comparison/oof_predictions.csv
