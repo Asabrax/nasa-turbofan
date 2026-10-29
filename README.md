@@ -2,7 +2,8 @@
 
 Predict remaining useful life from sensor histories across all four NASA C-MAPSS
 datasets. XGBoost combines operating-regime normalization, causal history features
-and a 150-cycle training target cap.
+and a 150-cycle training target cap. A full-data TCN ensemble provides the
+strongest overall RMSE in our follow-up comparison.
 
 **[Read the presentation notebook](explore.ipynb)** ·
 [Downloadable HTML report](presentation.html) ·
@@ -19,17 +20,39 @@ The maintenance event is actual RUL ≤30 cycles.
 | --- | ---: | ---: | ---: |
 | Original Random Forest, threshold 30 | 33.14 | 82.4% | 94.2% |
 | Original XGBoost, threshold 30 | 33.42 | 81.8% | 94.9% |
-| Final XGBoost, threshold 30 | **22.63** | 89.9% | 94.7% |
-| Final XGBoost, calibrated threshold 34.44 | **22.63** | **93.7%** | 92.5% |
+| Final XGBoost, threshold 30 | 22.63 | 89.9% | 94.7% |
+| Final XGBoost, calibrated threshold 34.44 | 22.63 | 93.7% | 92.5% |
+| TCN ensemble, calibrated threshold 34.27 | **20.09** | **94.3%** | **96.2%** |
 
-- **Validation:** engine-separated development CV, a held-out audit, and five
-  additional split-sensitivity checks. Normalization is fitted inside each fold.
+- **Validation:** both families use engine-separated development CV. The XGBoost
+  study also includes a held-out audit and five split-sensitivity checks; these
+  do not constitute a fresh audit of the full-data TCN. Fold preprocessing uses
+  only fitting engines.
 - **Sensors:** 17 of 21 survive variance filtering. Removing another three did
   not establish a meaningful improvement. See the [variation map](outputs/presentation/sensor_variation.png)
   and [sensor correlation matrix](outputs/presentation/sensor_correlation.png).
-- **Limits:** broad early-life accuracy worsens. Calibrated recall has a 95%
+- **Limits:** the XGBoost audit shows worse broad early-life accuracy. Its calibrated test recall has a 95%
   interval of 88.8–96.5%. The official test was previously observed; this is
   simulation-benchmark evidence, not a deployment or savings claim.
+
+## Full-data TCN result
+
+Three 50-cycle TCNs were trained locally on **all 709 engines / 160,359 cycles**,
+using development-selected epoch counts. Their **predeclared equal-weight
+ensemble** improves test RMSE by **11.2%**, with a paired 95% reduction interval
+of **1.54–3.59 cycles**. It catches **150/159** near-failure engines versus
+XGBoost's **149/159**, with **6 versus 12 false alerts**.
+
+The ensemble's recall difference is **+0.63 percentage points [−3.68, +4.58]**,
+so we cannot claim a conclusive recall improvement. Individual TCN seeds span
+20.30–21.32 RMSE and 91.8–98.7% calibrated recall; no favorite seed was selected
+from test scores. At threshold 30, ensemble recall is 83.0%, and its near-failure
+RMSE is 7.88 versus XGBoost's 6.50. Calibration and the operational objective matter.
+
+The official test was already examined. Intervals are conditional and unadjusted
+for multiple comparisons; an independent dataset is still needed. See the
+[full-data results and protocol](outputs/tcn_full/METHODS.md) and
+[comparison plot](outputs/presentation/full_tcn_comparison.png).
 
 ## Sequence model comparison
 

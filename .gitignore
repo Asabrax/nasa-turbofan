@@ -54,3 +54,6 @@ Thumbs.db
 # Local matched-alert calibration artifacts
 /outputs/alert_comparison/_runs/
 /outputs/alert_comparison/oof_predictions.csv
+
+# Local full-data TCN checkpoints
+/outputs/tcn_full/_runs/

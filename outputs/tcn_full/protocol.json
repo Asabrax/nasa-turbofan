@@ -1,0 +1,54 @@
+{
+  "window": 50,
+  "seeds": [
+    42,
+    73,
+    101
+  ],
+  "epochs": {
+    "42": 25,
+    "73": 27,
+    "101": 30
+  },
+  "epoch_sources": {
+    "42": [
+      24,
+      25,
+      30
+    ],
+    "73": [
+      27,
+      22,
+      33
+    ],
+    "101": [
+      30,
+      37,
+      29
+    ]
+  },
+  "epoch_rule": "Median of three selected inner-CV epochs for each seed; no test-based stopping",
+  "thresholds": {
+    "TCN_seed42": 34.569153,
+    "TCN_seed73": 34.820984,
+    "TCN_seed101": 35.447483,
+    "TCN_ensemble": 34.27466166666667,
+    "XGBoost": 34.438228607177734
+  },
+  "threshold_rule": "Smallest threshold achieving >=90% recall on pooled development OOF primary endpoints",
+  "ensemble_rule": "Unweighted arithmetic mean of all three seeds; fixed before test scoring",
+  "architecture": "Existing 32-channel residual TCN; dropout 0.1; 26241 parameters",
+  "target_cap": 150,
+  "batch_size": 512,
+  "learning_rate": 0.001,
+  "workers": 2,
+  "threads_per_worker": 3,
+  "training_engines": 709,
+  "test_engines": 707,
+  "original_xgboost_sha256": "bbc9b52f50b7f4548465d7fb348960713d7597f9d82673a805ebadf8039c3ae5",
+  "source_fits_sha256": "30332cf9e55af8f7a62a47d16bc4b5b8d6328ce48ad4430645dfdfde88c8d334",
+  "source_oof_sha256": "282ab53bff56693be7c1bf2f3f0f9cc64a93cf6008aa616cfb50f2b7bd1dcaa0",
+  "source_manifest_sha256": "17fab4c4816866ee99374b2dbb18bff9be51eb52f026d0b79227aa80de86ec05",
+  "benchmark_status": "Previously examined official test; follow-up comparison, not fresh blind validation",
+  "frozen_at_utc": "2026-10-28T20:27:49.682976+00:00"
+}

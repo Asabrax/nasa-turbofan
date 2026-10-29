@@ -1,0 +1,32 @@
+[
+  {
+    "seed": 42,
+    "epochs": 25,
+    "training_rows": 160359,
+    "training_engines": 709,
+    "parameters": 26241,
+    "model_sha256": "e1cbaae165d9d336f68ee5ea013c14ebbe5cf66e7935ba07f83c9cdc96c1576b",
+    "wall_seconds": 672.651611233,
+    "completed_utc": "2026-10-29T06:40:15.719227+00:00"
+  },
+  {
+    "seed": 73,
+    "epochs": 27,
+    "training_rows": 160359,
+    "training_engines": 709,
+    "parameters": 26241,
+    "model_sha256": "483f8db76439882603a0a2df8ebdf3fb903bc565b2aaebbb14971ced85ec06d8",
+    "wall_seconds": 730.2820425569998,
+    "completed_utc": "2026-10-29T06:41:13.315761+00:00"
+  },
+  {
+    "seed": 101,
+    "epochs": 30,
+    "training_rows": 160359,
+    "training_engines": 709,
+    "parameters": 26241,
+    "model_sha256": "bb22d024dadf4e91023beabbdc2c5b5faab052ee4b5da9ff1678213b24cd9135",
+    "wall_seconds": 662.4528562550004,
+    "completed_utc": "2026-10-29T06:51:27.975599+00:00"
+  }
+]

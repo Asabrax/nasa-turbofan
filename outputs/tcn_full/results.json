@@ -1,0 +1,10 @@
+{
+  "completed_utc": "2026-10-29T06:51:30.757374+00:00",
+  "training_engines": 709,
+  "training_rows": 160359,
+  "test_engines": 707,
+  "seed_models": 3,
+  "ensemble": "predeclared equal weights",
+  "original_xgboost_unchanged": true,
+  "benchmark_status": "Previously examined official test; follow-up comparison, not fresh blind validation"
+}

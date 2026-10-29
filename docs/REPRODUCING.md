@@ -5,7 +5,7 @@
 | Area | Scripts | Purpose |
 | --- | --- | --- |
 | Data setup | [`prepare_data.py`](../scripts/prepare_data.py) | Import the twelve checksum-verified dataset files. |
-| Training and experiments | [`train_all.py`](../scripts/train_all.py), [`run_experiments.py`](../scripts/run_experiments.py), [`run_sequences.py`](../scripts/run_sequences.py) | Train the original baselines and compare tree and sequence models. |
+| Training and experiments | [`train_all.py`](../scripts/train_all.py), [`run_experiments.py`](../scripts/run_experiments.py), [`run_sequences.py`](../scripts/run_sequences.py), [`train_tcn.py`](../scripts/train_tcn.py) | Train the original baselines and compare tree and sequence models. |
 | Model implementation | [`experiment_models.py`](../scripts/experiment_models.py) | Shared normalization, temporal features and estimators; imported by the experiment scripts. |
 | Additional experiments | [`audit_sensors.py`](../scripts/audit_sensors.py), [`run_robustness.py`](../scripts/run_robustness.py), [`run_tcn_followup.py`](../scripts/run_tcn_followup.py), [`run_regularization.py`](../scripts/run_regularization.py) | Compare sensor sets and TCN settings; evaluate split sensitivity, planning windows and alert policies. |
 | Verification | [`check_experiments.py`](../scripts/check_experiments.py), [`verify_experiment_results.py`](../scripts/verify_experiment_results.py), [`verify_robustness.py`](../scripts/verify_robustness.py) | Check feature isolation and independently verify saved experiment and robustness results. |
@@ -154,3 +154,20 @@ It fits three inner XGBoost models, reuses/reproduces saved outer predictions,
 and calibrates both families with the same rule and engine endpoints. The final
 model remains unchanged. See the [protocol](../outputs/alert_comparison/METHODS.md).
 Then rebuild the notebook and HTML to export the matched confusion matrices.
+
+## Full-data TCN fit
+
+After the TCN follow-up and final XGBoost fit, run:
+
+```bash
+./nasa/bin/python scripts/train_tcn.py
+./nasa/bin/python scripts/train_tcn.py --verify
+```
+
+This trains three frozen 50-cycle TCNs on all 709 training engines and evaluates
+all seeds plus their predeclared equal-weight ensemble on the 707 official test
+engines. Epoch counts and final alert thresholds come from development results.
+Completed seeds are resumable; incomplete seeds restart deterministically.
+`--evaluate` rescores completed fits. Local checkpoints remain ignored by Git;
+compact predictions and metrics support report rebuilding. See the
+[full-data protocol](../outputs/tcn_full/METHODS.md) for calibration and benchmark limits.

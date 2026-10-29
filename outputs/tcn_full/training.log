@@ -1,0 +1,34 @@
+2026-10-28T20:27:51+00:00 Start/resume full-data TCN: 3 seed fits remain; epochs={'42': 25, '73': 27, '101': 30}.
+2026-10-28T20:28:29+00:00 TCN seed 42: fitting all 160359 cycles / 709 engines for 25 frozen epochs.
+2026-10-28T20:28:29+00:00 TCN seed 73: fitting all 160359 cycles / 709 engines for 27 frozen epochs.
+2026-10-28T20:31:05+00:00 TCN seed 73: epoch 5/27, training capped RMSE=23.14.
+2026-10-28T20:31:07+00:00 TCN seed 42: epoch 5/25, training capped RMSE=22.77.
+2026-10-28T20:33:44+00:00 TCN seed 73: epoch 10/27, training capped RMSE=19.94.
+2026-10-28T20:33:48+00:00 TCN seed 42: epoch 10/25, training capped RMSE=18.83.
+2026-10-28T20:36:06+00:00 TCN seed 73: epoch 15/27, training capped RMSE=18.49.
+2026-10-28T20:36:12+00:00 TCN seed 42: epoch 15/25, training capped RMSE=17.02.
+2026-10-29T06:28:59+00:00 Start/resume full-data TCN: 3 seed fits remain; epochs={'42': 25, '73': 27, '101': 30}.
+2026-10-29T06:29:10+00:00 TCN seed 42: fitting all 160359 cycles / 709 engines for 25 frozen epochs.
+2026-10-29T06:29:11+00:00 TCN seed 73: fitting all 160359 cycles / 709 engines for 27 frozen epochs.
+2026-10-29T06:31:27+00:00 TCN seed 42: epoch 5/25, training capped RMSE=22.77.
+2026-10-29T06:31:29+00:00 TCN seed 73: epoch 5/27, training capped RMSE=23.14.
+2026-10-29T06:33:39+00:00 TCN seed 42: epoch 10/25, training capped RMSE=18.83.
+2026-10-29T06:33:41+00:00 TCN seed 73: epoch 10/27, training capped RMSE=19.94.
+2026-10-29T06:35:51+00:00 TCN seed 42: epoch 15/25, training capped RMSE=17.02.
+2026-10-29T06:35:54+00:00 TCN seed 73: epoch 15/27, training capped RMSE=18.49.
+2026-10-29T06:38:02+00:00 TCN seed 42: epoch 20/25, training capped RMSE=16.16.
+2026-10-29T06:38:07+00:00 TCN seed 73: epoch 20/27, training capped RMSE=17.73.
+2026-10-29T06:40:14+00:00 TCN seed 42: epoch 25/25, training capped RMSE=15.50.
+2026-10-29T06:40:15+00:00 TCN seed 42: complete; saved model and unlabeled test predictions.
+2026-10-29T06:40:19+00:00 TCN seed 73: epoch 25/27, training capped RMSE=17.06.
+2026-10-29T06:40:30+00:00 TCN seed 101: fitting all 160359 cycles / 709 engines for 30 frozen epochs.
+2026-10-29T06:41:11+00:00 TCN seed 73: epoch 27/27, training capped RMSE=16.85.
+2026-10-29T06:41:13+00:00 TCN seed 73: complete; saved model and unlabeled test predictions.
+2026-10-29T06:42:31+00:00 TCN seed 101: epoch 5/30, training capped RMSE=22.90.
+2026-10-29T06:44:19+00:00 TCN seed 101: epoch 10/30, training capped RMSE=19.39.
+2026-10-29T06:46:05+00:00 TCN seed 101: epoch 15/30, training capped RMSE=17.50.
+2026-10-29T06:47:52+00:00 TCN seed 101: epoch 20/30, training capped RMSE=16.55.
+2026-10-29T06:49:40+00:00 TCN seed 101: epoch 25/30, training capped RMSE=15.88.
+2026-10-29T06:51:26+00:00 TCN seed 101: epoch 30/30, training capped RMSE=15.27.
+2026-10-29T06:51:27+00:00 TCN seed 101: complete; saved model and unlabeled test predictions.
+2026-10-29T06:51:30+00:00 COMPLETE: all three full-data TCNs and the predeclared ensemble evaluated; original XGBoost unchanged.

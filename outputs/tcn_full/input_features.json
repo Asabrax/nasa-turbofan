@@ -1,0 +1,25 @@
+{
+  "sensors": [
+    "sensor_2",
+    "sensor_3",
+    "sensor_4",
+    "sensor_6",
+    "sensor_7",
+    "sensor_8",
+    "sensor_9",
+    "sensor_10",
+    "sensor_11",
+    "sensor_12",
+    "sensor_13",
+    "sensor_14",
+    "sensor_15",
+    "sensor_16",
+    "sensor_17",
+    "sensor_20",
+    "sensor_21"
+  ],
+  "channels": 26,
+  "training_rows": 160359,
+  "training_engines": 709,
+  "source_preprocessor_sha256": "c03776e901943107640d2e53db921f7d12abb448d106362efd828312019a1700"
+}
