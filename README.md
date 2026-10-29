@@ -95,11 +95,14 @@ locally for the styled report. The main notebook also runs from the small result
 tables included here, without raw data or trained models.
 
 ```bash
-python3 -m venv nasa
+python3.14 -m venv nasa
 ./nasa/bin/python -m pip install -r requirements.txt
 ./nasa/bin/python scripts/execute_notebook.py
 ./nasa/bin/python scripts/render_presentation.py
 ```
+
+Requirements record exact versions from Linux/Python 3.14. Fresh download
+availability has not been verified; see the [dependency notes](docs/REPRODUCING.md#dependency-snapshots-and-installation-limits) before rebuilding an environment.
 
 [Reproduction instructions](docs/REPRODUCING.md) cover data setup, actual training,
 and verification. [baseline.ipynb](baseline.ipynb) preserves the original analysis.

@@ -25,8 +25,41 @@ From the repository root, after installing `requirements.txt`:
 
 The recorded runs used Python 3.14 on Linux/WSL2, with six training threads.
 Recorded package versions are in `outputs/experiments/environment.txt`.
-Requirements use version ranges rather than an exact lock. On Windows, replace
-`./nasa/bin/python` with `nasa\Scripts\python.exe`.
+The default requirements now include exact version snapshots for the recorded
+Linux x86-64 / Python 3.14 environment. See the dependency notes below before
+installing on another platform. On Windows, the Python executable path would be
+`nasa\Scripts\python.exe`; the Linux dependency snapshot is not a Windows lock.
+
+## Dependency snapshots and installation limits
+
+`requirements.txt` includes `requirements.lock` (48 base packages).
+`requirements-sequences.txt` includes `requirements-sequences.lock`, which adds
+24 sequence dependencies to the same base. Versions come from installed package
+metadata, following all active transitive dependencies for Linux/Python 3.14.
+The sequence snapshot deliberately retains the TensorFlow/Keras prereleases
+that produced the saved results; no framework migration was performed.
+
+These are **version snapshots, not artifact-hash locks**. The installed environment
+passes `pip check` and an offline installation dry run against these files.
+A fresh download probe could not obtain the recorded NumPy 2.5.4 wheel from the
+configured package source. Therefore fresh installation availability and wheel
+hashes are **not verified**. A lockfile alone cannot preserve unavailable wheels.
+Keep the working environment until a separate installation has passed the model
+and report checks. A stable-framework migration should be tested separately.
+
+The notebook execution/rendering scripts use IPython directly. Unused nbformat,
+nbclient and nbconvert requirements were removed; a full Jupyter frontend is
+optional and is not included in these runtime snapshots. Interactive kernel
+support remains included through ipykernel.
+
+```bash
+./nasa/bin/python -m pip check
+./nasa/bin/python -m pip install --dry-run --no-index -r requirements-sequences.txt
+```
+
+The dry run checks an **existing** environment; it does not prove that an empty
+environment can install the packages. For another platform/Python version,
+resolve a separate environment and rerun verification before recording its pins.
 
 ## Prepare data
 
@@ -171,3 +204,32 @@ Completed seeds are resumable; incomplete seeds restart deterministically.
 `--evaluate` rescores completed fits. Local checkpoints remain ignored by Git;
 compact predictions and metrics support report rebuilding. See the
 [full-data protocol](../outputs/tcn_full/METHODS.md) for calibration and benchmark limits.
+
+## Feature-generation optimization
+
+Grouped rolling means, population standard deviations and exponential means use
+native pandas grouped windows instead of per-group Python transforms. Row labels
+are preserved after dropping the group index level, and output is restored to
+input order. Windows remain causal and isolated by engine.
+
+On 160,359 training rows, three sequential measurements per implementation gave:
+
+| Feature set | Previous median | Updated median | Speedup |
+| --- | ---: | ---: | ---: |
+| Basic histories | 0.524 s | 0.398 s | 1.31× |
+| Regime-normalized rich histories | 1.732 s | 1.241 s | 1.40× |
+
+The previous implementation is preserved in commit `4428a51`. Measurements used
+this machine's recorded environment; they measure feature transformation only,
+not total model training. Every float32 feature matched exactly across all train
+and test rows, including shuffled-row checks. No models were retrained.
+`check_experiments.py` retains an independent per-group reference for all four
+window statistics and checks shuffled alignment, engine boundaries and future/
+target isolation. Saved XGBoost and TCN predictions were verified after the change.
+
+The experimental asymmetric loss is `0.5 * sample_weight * multiplier * error²`,
+where the multiplier is 1.5 for overestimation and 1 otherwise. Weighting both
+first and second derivatives is intentional. It changes Hessian totals and thus
+interacts with regularization and minimum child weight. Mean-one sample weights
+preserve total row weight, not the number of engines. The selected final XGBoost
+configuration uses the standard objective, so this documentation changes no result.

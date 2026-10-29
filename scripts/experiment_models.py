@@ -51,13 +51,14 @@ class HistoryFeatures(BaseEstimator, TransformerMixin):
         for sensor in SENSORS:
             features[sensor] = values[sensor]
         groups = values.groupby(ordered.engine_key, sort=False)
-        mean5 = groups.transform(lambda x: x.rolling(5, min_periods=1).mean()).add_suffix('_mean5')
+        # Grouped windows return (engine, row) indices; retain row labels for alignment.
+        mean5 = groups.rolling(5, min_periods=1).mean().droplevel(0).add_suffix('_mean5')
         delta = groups.diff().fillna(0).add_suffix('_delta')
         parts = [features, mean5, delta]
         if self.rich:
-            mean20 = groups.transform(lambda x: x.rolling(20, min_periods=1).mean()).add_suffix('_mean20')
-            std20 = groups.transform(lambda x: x.rolling(20, min_periods=1).std(ddof=0)).add_suffix('_std20')
-            ewm = groups.transform(lambda x: x.ewm(halflife=10, adjust=False).mean()).add_suffix('_ewm10')
+            mean20 = groups.rolling(20, min_periods=1).mean().droplevel(0).add_suffix('_mean20')
+            std20 = groups.rolling(20, min_periods=1).std(ddof=0).droplevel(0).add_suffix('_std20')
+            ewm = groups.ewm(halflife=10, adjust=False).mean().droplevel(0).add_suffix('_ewm10')
             # Secant slope over the last 20 observations, with shorter initial windows.
             lag = groups.shift(19)
             first = groups.transform('first')
@@ -74,7 +75,14 @@ class HistoryFeatures(BaseEstimator, TransformerMixin):
 
 
 def asymmetric_squared(y_true, y_pred, *, sample_weight=None):
-    """1.5x penalty for overestimation, with explicit sample weights."""
+    """Derivatives of 0.5 * weight * multiplier * error**2.
+
+    The multiplier is 1.5 for overestimation and 1 otherwise. Both derivatives
+    must receive it. This changes Hessian totals and therefore interacts with
+    reg_lambda/min_child_weight; it is not a pure change of prediction bias.
+    Mean-one sample weights preserve total row weight, not engine count.
+    At zero error we use the lower-side curvature convention.
+    """
     error = y_pred - y_true
     multiplier = np.where(error > 0, 1.5, 1.0)
     if sample_weight is not None:

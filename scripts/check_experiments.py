@@ -1,7 +1,7 @@
 """Meaningful checks for target isolation, causal history and asymmetric loss."""
 import numpy as np
 import pandas as pd
-from experiment_models import HistoryFeatures, asymmetric_squared, ExperimentRegressor
+from experiment_models import HistoryFeatures, asymmetric_squared, ExperimentRegressor, regime_keys
 from train_all import load_inputs, make_features, DATASETS, SENSORS
 from run_experiments import configs, endpoints, score, choose_threshold
 
@@ -12,6 +12,23 @@ fit = small[small.engine_id.le(2)]
 valid = small[small.engine_id.eq(3)]
 transformer = HistoryFeatures(normalize=True, rich=True).fit(fit)
 full = transformer.transform(valid)
+# Regression oracle for the grouped-window optimization, including row alignment.
+ordered = valid.sort_values(['engine_key', 'cycle'])
+keys = regime_keys(ordered)
+values = pd.DataFrame(
+    (ordered[SENSORS].to_numpy() - transformer.means_.loc[keys].to_numpy())
+    / transformer.scales_.loc[keys].to_numpy(), index=ordered.index, columns=SENSORS)
+groups = values.groupby(ordered.engine_key, sort=False)
+for suffix, operation in [
+    ('_mean5', lambda x: x.rolling(5, min_periods=1).mean()),
+    ('_mean20', lambda x: x.rolling(20, min_periods=1).mean()),
+    ('_std20', lambda x: x.rolling(20, min_periods=1).std(ddof=0)),
+    ('_ewm10', lambda x: x.ewm(halflife=10, adjust=False).mean()),
+]:
+    expected = groups.transform(operation).add_suffix(suffix).loc[valid.index].astype(np.float32)
+    pd.testing.assert_frame_equal(full[expected.columns], expected, check_exact=True)
+shuffled = valid.sample(frac=1, random_state=42)
+pd.testing.assert_frame_equal(transformer.transform(shuffled), full.loc[shuffled.index], check_exact=True)
 assert transformer.fit_engines_.isdisjoint(valid.engine_key)
 before = transformer.means_.copy()
 for dataset in DATASETS:
