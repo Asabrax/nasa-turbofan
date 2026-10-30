@@ -14,18 +14,15 @@ import run_sequences as seq
 import run_tcn_followup as prior
 from experiment_models import HistoryFeatures
 from train_all import ROOT,DATASETS
-from run_experiments import score
+from cmapps.utils import append_log, digest, write_json as save
+from cmapps.evaluation import score
 
 OUT=ROOT/'outputs/regularization'
 SEEDS=[42,73,101]
 tf=seq.tf
 
-def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
-def save(path,value):prior.write_json(path,value)
 def log(message):
-    text=f'{datetime.now(timezone.utc).isoformat(timespec="seconds")} {message}'
-    print(text,flush=True)
-    with (OUT/'training.log').open('a') as f:f.write(text+'\n')
+    append_log(OUT/'training.log', message)
 
 def tcn(features,seed):
     tf.keras.backend.clear_session();tf.keras.utils.set_random_seed(seed)
@@ -66,14 +63,13 @@ def prepare(fold):
     return train,outer,valid,fit,stop,stop_points,eval_points,training_points
 
 def tcn_job(fold,seed,folder):
-    seq.WINDOW=50
     tf.config.threading.set_intra_op_parallelism_threads(3)
     tf.config.threading.set_inter_op_parallelism_threads(1)
     tf.config.experimental.enable_op_determinism()
     train,outer,valid,fit,stop,stop_points,eval_points,training_points=prepare(fold)
     proc=seq.SequenceInputs().fit(fit)
-    X,idx,_=prior.windows(proc,fit);y=np.minimum(train.loc[idx,'RUL'].to_numpy(),150).astype('float32')/150
-    Xstop,_,order=prior.windows(proc,stop,stop_points)
+    X,idx,_=prior.windows(proc,fit, window=50);y=np.minimum(train.loc[idx,'RUL'].to_numpy(),150).astype('float32')/150
+    Xstop,_,order=prior.windows(proc,stop,stop_points, window=50)
     model=tcn(X.shape[-1],seed);params=model.count_params();ds=seq.dataset(X,y,seed)
     best=np.inf;selected=0;wait=0;curves=[]
     log(f'TCN fold {fold} seed {seed}: inner training, {params} parameters.')
@@ -98,7 +94,7 @@ def tcn_job(fold,seed,folder):
                     dict(name='regularized',inner_RMSE=best,rounds=selected)],parameters=params))
     del model,ds,X,Xstop;gc.collect()
     proc=seq.SequenceInputs().fit(outer)
-    X,idx,_=prior.windows(proc,outer);y=np.minimum(train.loc[idx,'RUL'].to_numpy(),150).astype('float32')/150
+    X,idx,_=prior.windows(proc,outer, window=50);y=np.minimum(train.loc[idx,'RUL'].to_numpy(),150).astype('float32')/150
     model=tcn(X.shape[-1],seed);ds=seq.dataset(X,y,seed)
     log(f'TCN fold {fold} seed {seed}: refit {selected} epochs; inner choice={winner}.')
     model.fit(ds,epochs=selected,verbose=0,shuffle=False)
@@ -110,7 +106,7 @@ def tcn_job(fold,seed,folder):
         model=tf.keras.models.load_model(path)
         frames=[]
         for frame,points in [(outer,training_points),(valid,eval_points)]:
-            xx,_,order=prior.windows(proc,frame,points)
+            xx,_,order=prior.windows(proc,frame,points, window=50)
             pp=points.copy();pp['predicted_RUL']=seq.predict(model,xx)[order];frames.append(pp)
             del xx
         a,b=frames
@@ -231,7 +227,6 @@ def summarize():
 def verify():
     tf.config.threading.set_intra_op_parallelism_threads(3)
     tf.config.threading.set_inter_op_parallelism_threads(1)
-    seq.WINDOW=50
     folders=[p.parent for p in (OUT/'_runs').glob('*/done.json')]
     assert len(folders)==12
     data={f:prepare(f) for f in [1,2,3]}
@@ -244,7 +239,7 @@ def verify():
         curves=pd.read_csv(folder/'curves.csv')
         if family=='TCN':
             proc=seq.SequenceInputs().fit(fit)
-            xx,_,order=prior.windows(proc,stop,stop_points)
+            xx,_,order=prior.windows(proc,stop,stop_points, window=50)
             inner=tf.keras.models.load_model(folder/'inner.keras')
             predicted=seq.predict(inner,xx)[order]
             actual=float(np.sqrt(np.mean((predicted-stop_points.actual_RUL)**2)))
@@ -279,7 +274,7 @@ def verify():
                     xx=selector.transform(transformer.transform(frame).loc[points.row_index])
                     predicted=np.maximum(0,model.predict(xx))
                 else:
-                    xx,_,order=prior.windows(proc,frame,points);predicted=seq.predict(model,xx)[order]
+                    xx,_,order=prior.windows(proc,frame,points, window=50);predicted=seq.predict(model,xx)[order]
                 np.testing.assert_allclose(predicted,saved.predicted_RUL,rtol=1e-5,atol=.001)
                 frames.append(saved)
                 del xx

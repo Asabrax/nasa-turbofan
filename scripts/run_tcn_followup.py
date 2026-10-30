@@ -2,38 +2,25 @@
 import os
 os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL','3')
 os.environ.setdefault('CUDA_VISIBLE_DEVICES','-1')
-import argparse,gc,hashlib,json,math,subprocess,sys,time
+import argparse,gc,hashlib,json,subprocess,sys,time
 from pathlib import Path
 from datetime import datetime,timezone
 import numpy as np
 import pandas as pd
 import run_sequences as seq
-from run_experiments import score
 from train_all import ROOT,DATASETS,load_inputs
 from sklearn.model_selection import train_test_split
 
+from cmapps.utils import append_log, write_json
+from cmapps.evaluation import score, threshold
 tf=seq.tf
 OUT=ROOT/'outputs/tcn_followup'
 SEEDS=[42,73,101]
 WINDOWS=[30,50]
 
 
-def write_json(path,value):
-    temp=path.with_suffix(path.suffix+'.tmp')
-    temp.write_text(json.dumps(value,indent=2)+'\n')
-    temp.replace(path)
-
-
 def log(message):
-    line=f'{datetime.now(timezone.utc).isoformat(timespec="seconds")} {message}'
-    print(line,flush=True)
-    with (OUT/'training.log').open('a') as f:f.write(line+'\n')
-
-
-def threshold(actual,pred):
-    positives=np.asarray(pred)[np.asarray(actual)<=30]
-    if not len(positives):raise ValueError('No calibration events')
-    return float(np.sort(positives)[math.ceil(.9*len(positives))-1])
+    append_log(OUT/'training.log', message)
 
 
 def prepare(fold):
@@ -51,14 +38,13 @@ def prepare(fold):
     return train,outer,valid,fit,stop,stop_points,eval_points
 
 
-def windows(processor,frame,points=None):
-    X,indices=processor.windows(frame,None if points is None else points.row_index)
+def windows(processor,frame,points=None,*,window):
+    X,indices=processor.windows(frame,None if points is None else points.row_index, window=window)
     order=None if points is None else pd.Series(np.arange(len(indices)),index=indices).loc[points.row_index].to_numpy()
     return X,indices,order
 
 
 def worker(window,fold,seed):
-    seq.WINDOW=window
     tf.config.threading.set_intra_op_parallelism_threads(3)
     tf.config.threading.set_inter_op_parallelism_threads(1)
     tf.config.experimental.enable_op_determinism()
@@ -67,10 +53,10 @@ def worker(window,fold,seed):
     start=time.perf_counter()
     train,outer,valid,fit,stop,stop_points,eval_points=prepare(fold)
     processor=seq.SequenceInputs().fit(fit)
-    Xfit,indices,_=windows(processor,fit)
+    Xfit,indices,_=windows(processor,fit, window=window)
     yfit=np.minimum(train.loc[indices,'RUL'].to_numpy(),150).astype('float32')/150
-    Xstop,_,stop_order=windows(processor,stop,stop_points)
-    model=seq.network('TCN',Xfit.shape[-1],seed)
+    Xstop,_,stop_order=windows(processor,stop,stop_points, window=window)
+    model=seq.network('TCN',Xfit.shape[-1],seed, window=window)
     ds=seq.dataset(Xfit,yfit,seed)
     curves=[];best=float('inf');best_epoch=1;wait=0;chosen={}
     log(f'{name}: inner training (302 fit / 76 stop engines).')
@@ -96,15 +82,15 @@ def worker(window,fold,seed):
     chosen[60]=dict(selected_epoch=best_epoch,inner_RMSE=best,epochs_observed=epoch)
     del model,ds,Xfit,Xstop;gc.collect()
     processor=seq.SequenceInputs().fit(outer)
-    Xouter,indices,_=windows(processor,outer)
+    Xouter,indices,_=windows(processor,outer, window=window)
     youter=np.minimum(train.loc[indices,'RUL'].to_numpy(),150).astype('float32')/150
-    Xeval,_,eval_order=windows(processor,valid,eval_points)
+    Xeval,_,eval_order=windows(processor,valid,eval_points, window=window)
     for d in DATASETS:
         key=valid.loc[valid.dataset.eq(d),'engine_key'].iloc[0]
         prefix=valid[valid.engine_key.eq(key)].iloc[:23].copy();row=prefix.index[-1]
-        A=processor.windows(valid[valid.engine_key.eq(key)],[row])[0]
+        A=processor.windows(valid[valid.engine_key.eq(key)],[row], window=window)[0]
         prefix['RUL']=-999
-        np.testing.assert_array_equal(A,processor.windows(prefix,[row])[0])
+        np.testing.assert_array_equal(A,processor.windows(prefix,[row], window=window)[0])
         assert np.all(A[0,:window-len(prefix)]==0)
     results=[];by_epoch={}
     for budget,selection in chosen.items():
@@ -113,7 +99,7 @@ def worker(window,fold,seed):
         t=threshold(inner.actual_RUL,inner.predicted_RUL)
         if selected not in by_epoch:
             log(f'{name}: refit all 378 fitting engines for {selected} epochs (budget {budget}).')
-            model=seq.network('TCN',Xouter.shape[-1],seed)
+            model=seq.network('TCN',Xouter.shape[-1],seed, window=window)
             ds=seq.dataset(Xouter,youter,seed)
             class Progress(tf.keras.callbacks.Callback):
                 def on_epoch_end(self,epoch,logs=None):
@@ -264,18 +250,17 @@ def diagnostics():
         assert set(fit_points.engine_key).isdisjoint(eval_points.engine_key)
         processor=seq.SequenceInputs().fit(outer)
         for window in WINDOWS:
-            seq.WINDOW=window
-            Xfit,_,fit_order=windows(processor,outer,fit_points)
-            Xvalid,_,valid_order=windows(processor,valid,eval_points)
+            Xfit,_,fit_order=windows(processor,outer,fit_points, window=window)
+            Xvalid,_,valid_order=windows(processor,valid,eval_points, window=window)
             for dataset_name in DATASETS:
                 key=valid.loc[valid.dataset.eq(dataset_name),'engine_key'].iloc[0]
                 history=valid[valid.engine_key.eq(key)].sort_values('cycle').copy()
                 endpoint=history.index[22]
-                expected=processor.windows(history,[endpoint])[0]
+                expected=processor.windows(history,[endpoint], window=window)[0]
                 altered=history.copy();altered['RUL']=-999
                 altered.loc[altered.index[23:],seq.SENSORS]=1e6
-                np.testing.assert_array_equal(expected,processor.windows(altered,[endpoint])[0])
-                np.testing.assert_array_equal(expected,processor.windows(history.iloc[:23],[endpoint])[0])
+                np.testing.assert_array_equal(expected,processor.windows(altered,[endpoint], window=window)[0])
+                np.testing.assert_array_equal(expected,processor.windows(history.iloc[:23],[endpoint], window=window)[0])
             cache={}
             for item in fits[(fits.fold==fold)&(fits.window==window)].itertuples():
                 run=OUT/'_runs'/f'w{window}_f{fold}_s{item.seed}'
@@ -357,7 +342,6 @@ def compare_alerts():
     else:write_json(target/'protocol.json',plan)
     tf.config.threading.set_intra_op_parallelism_threads(3)
     tf.config.threading.set_inter_op_parallelism_threads(1)
-    seq.WINDOW=50
     xgb_oof=pd.read_csv(ROOT/'outputs/experiments/oof_predictions.csv')
     xgb_oof=xgb_oof[xgb_oof.candidate.eq(config['name'])]
     predictions=[];calibrations=[]
@@ -381,9 +365,9 @@ def compare_alerts():
         np.testing.assert_allclose(actual,outer_xgb.predicted_RUL,rtol=1e-6,atol=1e-4)
         groups=[('XGBoost',42,inner,outer_xgb)]
         proc=seq.SequenceInputs().fit(fit)
-        Xstop,_,stop_order=windows(proc,stop,stop_points)
+        Xstop,_,stop_order=windows(proc,stop,stop_points, window=50)
         proc_outer=seq.SequenceInputs().fit(outer)
-        Xouter,_,outer_order=windows(proc_outer,valid,eval_points)
+        Xouter,_,outer_order=windows(proc_outer,valid,eval_points, window=50)
         for seed in SEEDS:
             folder=OUT/'_runs'/f'w50_f{fold}_s{seed}'
             inner_tcn=pd.read_csv(folder/'inner_best.csv')
@@ -485,7 +469,6 @@ def verify():
         assert (flag&truth).sum()==row.TP and (flag&~truth).sum()==row.FP
         assert (~flag&truth).sum()==row.FN and (~flag&~truth).sum()==row.TN
     for window in WINDOWS:
-        seq.WINDOW=window
         row=fits[(fits.window==window)&(fits.budget==60)&(fits.fold==1)&(fits.seed==42)].iloc[0]
         run=OUT/'_runs'/f'w{window}_f1_s42'
         train,outer,valid,fit,stop,stop_points,eval_points=prepared[1]
@@ -493,7 +476,7 @@ def verify():
             ('inner',stop,fit,stop_points,'inner_best.keras'),
             ('outer',valid,outer,eval_points,f'outer_epoch{int(row.selected_epoch)}.keras')]:
             processor=seq.SequenceInputs().fit(fit_frame)
-            X,_,order=windows(processor,frame,points)
+            X,_,order=windows(processor,frame,points, window=window)
             model=tf.keras.models.load_model(run/path)
             assert model.count_params()==int(row.parameters)
             actual=seq.predict(model,X)[order]

@@ -12,23 +12,9 @@ from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from experiment_models import HistoryFeatures, ExperimentRegressor
 from train_all import ROOT, DATASETS, load_inputs
+from cmapps.evaluation import score
 
 OUT = ROOT / 'outputs/experiments'
-
-
-def score(actual, pred, threshold=30):
-    actual, pred = np.asarray(actual), np.asarray(pred)
-    error = pred - actual
-    terms = np.expm1(np.where(error < 0, -error / 13, error / 10))
-    assert np.isfinite(terms).all()
-    truth, flag = actual <= 30, pred <= threshold
-    tp, fp = int((truth & flag).sum()), int((~truth & flag).sum())
-    fn, tn = int((truth & ~flag).sum()), int((~truth & ~flag).sum())
-    return {'n': len(actual), 'RMSE': float(np.sqrt(mean_squared_error(actual, pred))),
-            'MAE': float(mean_absolute_error(actual, pred)), 'bias': float(error.mean()),
-            'NASA_score_sum': float(terms.sum()), 'NASA_score_mean': float(terms.mean()),
-            'threshold': float(threshold), 'precision': tp / max(tp + fp, 1),
-            'recall': tp / max(tp + fn, 1), 'TP': tp, 'FP': fp, 'FN': fn, 'TN': tn}
 
 
 def endpoints(frame):

@@ -11,7 +11,7 @@ from scipy.stats import binomtest
 from sklearn.model_selection import train_test_split
 from experiment_models import ExperimentRegressor
 from train_all import ROOT,load_inputs
-from run_experiments import score
+from cmapps.evaluation import score
 
 OUT=ROOT/'outputs/robustness'
 SEEDS=[7,19,42,73,101]

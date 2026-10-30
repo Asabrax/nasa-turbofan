@@ -6,9 +6,9 @@
 | --- | --- | --- |
 | Data setup | [`prepare_data.py`](../scripts/prepare_data.py) | Import the twelve checksum-verified dataset files. |
 | Training and experiments | [`train_all.py`](../scripts/train_all.py), [`run_experiments.py`](../scripts/run_experiments.py), [`run_sequences.py`](../scripts/run_sequences.py), [`train_tcn.py`](../scripts/train_tcn.py) | Train the original baselines and compare tree and sequence models. |
-| Model implementation | [`experiment_models.py`](../scripts/experiment_models.py) | Shared normalization, temporal features and estimators; imported by the experiment scripts. |
+| Shared implementation | [`experiment_models.py`](../scripts/experiment_models.py), [`cmapps/`](../scripts/cmapps/) | Normalization, temporal features, estimators, evaluation and artifact helpers. |
 | Additional experiments | [`audit_sensors.py`](../scripts/audit_sensors.py), [`run_robustness.py`](../scripts/run_robustness.py), [`run_tcn_followup.py`](../scripts/run_tcn_followup.py), [`run_regularization.py`](../scripts/run_regularization.py) | Compare sensor sets and TCN settings; evaluate split sensitivity, planning windows and alert policies. |
-| Verification | [`check_experiments.py`](../scripts/check_experiments.py), [`verify_experiment_results.py`](../scripts/verify_experiment_results.py), [`verify_robustness.py`](../scripts/verify_robustness.py) | Check feature isolation and independently verify saved experiment and robustness results. |
+| Verification | [`check_experiments.py`](../scripts/check_experiments.py), [`check_sequences.py`](../scripts/check_sequences.py), [`verify_experiment_results.py`](../scripts/verify_experiment_results.py), [`verify_robustness.py`](../scripts/verify_robustness.py) | Check feature isolation and independently verify saved experiment and robustness results. |
 | Notebook rendering | [`execute_notebook.py`](../scripts/execute_notebook.py), [`render_presentation.py`](../scripts/render_presentation.py) | Execute a notebook and render the main presentation as HTML. |
 
 ## Read or rebuild the presentation
@@ -233,3 +233,35 @@ first and second derivatives is intentional. It changes Hessian totals and thus
 interacts with regularization and minimum child weight. Mean-one sample weights
 preserve total row weight, not the number of engines. The selected final XGBoost
 configuration uses the standard objective, so this documentation changes no result.
+
+## Shared helpers and explicit sequence windows
+
+`scripts/cmapps/` is a lightweight internal package for evaluation, alert
+calibration, atomic JSON writes, SHA-256 digests and timestamped logs. Running
+entry points as `python scripts/<name>.py` makes this package available without
+an installation step. Experiment-specific fitting loops and resumable workers
+remain in their scripts. Existing score/helper imports remain available for
+compatibility, but the updated consumers import shared helpers directly.
+
+The sequence threshold helper retains the original positive-quantile rule.
+XGBoost's `choose_threshold` still returns its full candidate table; its behavior
+has not been replaced by the sequence helper.
+
+`SequenceInputs.windows(..., window=30)` and `network(..., window=50)` now require
+an explicit window length. No experiment changes `seq.WINDOW`. Preprocessor
+objects have no new required state, and serialized model classes stay at their
+original module paths. Existing Joblib and Keras files remain usable.
+
+```bash
+./nasa/bin/python scripts/check_sequences.py
+./nasa/bin/python scripts/run_sequences.py --verify
+./nasa/bin/python scripts/run_tcn_followup.py --verify
+./nasa/bin/python scripts/run_regularization.py --verify
+./nasa/bin/python scripts/train_tcn.py --verify
+```
+
+These checks require the optional sequence environment, raw data and saved local
+artifacts. They do not retrain models. The window check alternates 30/50/30-cycle
+calls within one process and checks an independent prefix/padding oracle,
+engine isolation, future/target isolation and legacy preprocessing compatibility.
+Environment audit logs and the version snapshots are unchanged by this refactor.

@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from experiment_models import HistoryFeatures,regime_keys
 from train_all import ROOT,SENSORS,SETTINGS,DATASETS,load_inputs
-from run_experiments import score
+from cmapps.evaluation import score
 
 OUT=ROOT/'outputs/sequences'
 WINDOW=30
@@ -41,28 +41,30 @@ class SequenceInputs:
         # Explicit observation indicator distinguishes left padding from real zeros.
         return np.column_stack([values,meta,datasets,np.ones(len(frame))]).astype('float32')
 
-    def windows(self,frame,rows=None):
+    def windows(self,frame,rows=None,*,window):
         """Each window ends at its prediction cycle; no future rows or engine mixing."""
+        if isinstance(window, bool) or not isinstance(window, (int, np.integer)) or window < 1:
+            raise ValueError("window must be a positive integer")
         frame=frame.sort_values(['engine_key','cycle'])
         values=self.transform(frame)
         pieces=[];indices=[]
         for positions in frame.groupby('engine_key',sort=False).indices.values():
             block=values[positions]
-            padded=np.pad(block,((WINDOW-1,0),(0,0)))
-            window=np.lib.stride_tricks.sliding_window_view(padded,WINDOW,axis=0).transpose(0,2,1)
+            padded=np.pad(block,((window-1,0),(0,0)))
+            blocks=np.lib.stride_tricks.sliding_window_view(padded,window,axis=0).transpose(0,2,1)
             idx=frame.index.to_numpy()[positions]
             keep=np.ones(len(idx),bool) if rows is None else np.isin(idx,rows)
-            pieces.append(window[keep]);indices.extend(idx[keep])
+            pieces.append(blocks[keep]);indices.extend(idx[keep])
         X=np.concatenate(pieces).astype('float32')
         index=np.asarray(indices)
         assert np.isfinite(X).all()
         return X,index
 
 
-def network(kind,features,seed):
+def network(kind,features,seed,*,window):
     tf.keras.backend.clear_session()
     tf.keras.utils.set_random_seed(seed)
-    inputs=tf.keras.Input((WINDOW,features))
+    inputs=tf.keras.Input((window,features))
     if kind=='LSTM':
         x=tf.keras.layers.LSTM(32)(inputs)
     else:
@@ -136,32 +138,32 @@ def run(epochs=20):
         stop_points=endpoints[endpoints.engine_key.isin(inner_stop)&endpoints.protocol.eq('primary')]
         eval_points=endpoints[endpoints.engine_key.isin(eval_keys)]
         processor=SequenceInputs().fit(fit)
-        Xfit,ifit=processor.windows(fit)
+        Xfit,ifit=processor.windows(fit, window=30)
         yfit=np.minimum(train.loc[ifit,'RUL'].to_numpy(),150).astype('float32')/150
-        Xstop,istop=processor.windows(stop,stop_points.row_index)
+        Xstop,istop=processor.windows(stop,stop_points.row_index, window=30)
         stop_lookup=pd.Series(np.arange(len(istop)),index=istop)
         # Use the saved endpoint order, including any overlapping protocol endpoints.
         stop_order=stop_lookup.loc[stop_points.row_index].to_numpy()
         outer_processor=SequenceInputs().fit(outer)
-        Xouter,iouter=outer_processor.windows(outer)
+        Xouter,iouter=outer_processor.windows(outer, window=30)
         youter=np.minimum(train.loc[iouter,'RUL'].to_numpy(),150).astype('float32')/150
-        Xeval,ieval=outer_processor.windows(valid,eval_points.row_index)
+        Xeval,ieval=outer_processor.windows(valid,eval_points.row_index, window=30)
         eval_order=pd.Series(np.arange(len(ieval)),index=ieval).loc[eval_points.row_index].to_numpy()
         # Prefix invariance, target isolation and engine isolation on each dataset.
         for d in DATASETS:
             key=valid.loc[valid.dataset.eq(d),'engine_key'].iloc[0]
             prefix=valid[valid.engine_key.eq(key)].iloc[:23].copy()
             row=prefix.index[-1]
-            A,_=outer_processor.windows(valid[valid.engine_key.eq(key)],[row])
+            A,_=outer_processor.windows(valid[valid.engine_key.eq(key)],[row], window=30)
             prefix['RUL']=-12345
-            B,_=outer_processor.windows(prefix,[row])
+            B,_=outer_processor.windows(prefix,[row], window=30)
             np.testing.assert_array_equal(A,B)
             np.testing.assert_allclose(B[0,-1],outer_processor.transform(prefix)[-1])
             assert np.all(B[0,:WINDOW-len(prefix)]==0)
         for kind in ['LSTM','TCN']:
             for seed in SEEDS:
                 t0=time.perf_counter();best=np.inf;best_epoch=1;wait=0
-                model=network(kind,Xfit.shape[2],seed)
+                model=network(kind,Xfit.shape[2],seed, window=30)
                 params=model.count_params()
                 log(f'Fold {fold}, {kind}, seed {seed}: early stopping; {len(inner_fit)} fit / {len(inner_stop)} stop / {len(eval_keys)} evaluation engines; {params} parameters.')
                 ds=dataset(Xfit,yfit,seed)
@@ -178,7 +180,7 @@ def run(epochs=20):
                 inner_seconds=time.perf_counter()-t0
                 del model,ds;gc.collect()
                 log(f'Fold {fold}, {kind}, seed {seed}: refitting all {len(fit_keys)} outer fitting engines for {best_epoch} epochs.')
-                model=network(kind,Xouter.shape[2],seed)
+                model=network(kind,Xouter.shape[2],seed, window=30)
                 ds=dataset(Xouter,youter,seed)
                 model.fit(ds,epochs=best_epoch,verbose=0,shuffle=False)
                 pred=predict(model,Xeval)[eval_order]
@@ -218,7 +220,7 @@ def diagnostics():
         fit=train[train.engine_key.isin(fit_keys)]
         endpoints=points[points.engine_key.isin(fit_keys)&points.protocol.eq('primary')]
         processor=SequenceInputs().fit(fit)
-        X,index=processor.windows(fit,endpoints.row_index)
+        X,index=processor.windows(fit,endpoints.row_index, window=30)
         order=pd.Series(np.arange(len(index)),index=index).loc[endpoints.row_index].to_numpy()
         for kind in ['LSTM','TCN']:
             for seed in SEEDS:
@@ -292,7 +294,7 @@ def verify():
     processor=SequenceInputs().fit(train[train.engine_key.isin(fit_keys)])
     valid=train[train.engine_key.isin(valid_keys)]
     points=endpoints[endpoints.engine_key.isin(valid_keys)]
-    X,index=processor.windows(valid,points.row_index)
+    X,index=processor.windows(valid,points.row_index, window=30)
     order=pd.Series(np.arange(len(index)),index=index).loc[points.row_index].to_numpy()
     for kind in ['LSTM','TCN']:
         model=tf.keras.models.load_model(OUT/f'{kind.lower()}_fold1_seed42.keras')

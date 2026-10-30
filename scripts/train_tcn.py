@@ -9,19 +9,16 @@ import joblib
 import numpy as np
 import pandas as pd
 import run_sequences as seq
-from run_experiments import score
-from run_tcn_followup import threshold,write_json
 from train_all import ROOT,DATASETS,load_inputs
 
+from cmapps.utils import append_log, write_json, digest
+from cmapps.evaluation import score, threshold
 tf=seq.tf
 OUT=ROOT/'outputs/tcn_full'
 SEEDS=[42,73,101]
 
-def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 def log(message):
-    line=f'{datetime.now(timezone.utc).isoformat(timespec="seconds")} {message}'
-    print(line,flush=True)
-    with (OUT/'training.log').open('a') as f:f.write(line+'\n')
+    append_log(OUT/'training.log', message)
 
 def freeze():
     OUT.mkdir(parents=True,exist_ok=True)
@@ -79,7 +76,7 @@ def freeze():
 
 def test_windows(processor,test):
     endpoints=test.groupby('engine_key').tail(1).sort_values(['dataset','engine_id'])
-    X,index=processor.windows(test,endpoints.index)
+    X,index=processor.windows(test,endpoints.index, window=50)
     order=pd.Series(np.arange(len(index)),index=index).loc[endpoints.index].to_numpy()
     return endpoints,X,order
 
@@ -87,16 +84,15 @@ def worker(seed):
     folder=OUT/'_runs'/f'seed{seed}';folder.mkdir(parents=True,exist_ok=True)
     if (folder/'done.json').exists():return
     plan=json.loads((OUT/'protocol.json').read_text());epochs=plan['epochs'][str(seed)]
-    seq.WINDOW=50
     tf.config.threading.set_intra_op_parallelism_threads(3)
     tf.config.threading.set_inter_op_parallelism_threads(1)
     tf.config.experimental.enable_op_determinism()
     train,test,_=load_inputs();processor=joblib.load(OUT/'preprocessor.joblib')
     assert processor.fit_engines==set(train.engine_key) and len(train)==160359
     start=time.perf_counter()
-    X,index=processor.windows(train)
+    X,index=processor.windows(train, window=50)
     y=np.minimum(train.loc[index,'RUL'].to_numpy(),150).astype('float32')/150
-    model=seq.network('TCN',X.shape[-1],seed);assert model.count_params()==26241
+    model=seq.network('TCN',X.shape[-1],seed, window=50);assert model.count_params()==26241
     ds=seq.dataset(X,y,seed);curves=[]
     class Progress(tf.keras.callbacks.Callback):
         def on_epoch_end(self,epoch,logs=None):
@@ -115,11 +111,11 @@ def worker(seed):
     for dataset in DATASETS:
         key=test.loc[test.dataset.eq(dataset),'engine_key'].iloc[0]
         history=test[test.engine_key.eq(key)].sort_values('cycle').copy();row=history.index[22]
-        expected=processor.windows(history,[row])[0]
+        expected=processor.windows(history,[row], window=50)[0]
         changed=history.copy();changed['RUL']=-999
         changed.loc[changed.index[23:],seq.SENSORS]=1e6
-        np.testing.assert_array_equal(expected,processor.windows(changed,[row])[0])
-        np.testing.assert_array_equal(expected,processor.windows(history.iloc[:23],[row])[0])
+        np.testing.assert_array_equal(expected,processor.windows(changed,[row], window=50)[0])
+        np.testing.assert_array_equal(expected,processor.windows(history.iloc[:23],[row], window=50)[0])
     write_json(folder/'done.json',dict(seed=seed,epochs=epochs,training_rows=len(train),training_engines=709,
         parameters=model.count_params(),model_sha256=digest(folder/'model.keras'),
         wall_seconds=time.perf_counter()-start,completed_utc=datetime.now(timezone.utc).isoformat()))
@@ -198,7 +194,6 @@ def evaluate():
 
 def verify():
     from sklearn.metrics import confusion_matrix
-    seq.WINDOW=50
     tf.config.threading.set_intra_op_parallelism_threads(3)
     tf.config.threading.set_inter_op_parallelism_threads(1)
     plan=json.loads((OUT/'protocol.json').read_text());train,test,_=load_inputs()

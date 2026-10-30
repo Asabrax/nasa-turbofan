@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from train_all import ROOT,DATASETS,SENSORS,load_inputs
 from experiment_models import HistoryFeatures,ExperimentRegressor,regime_keys
-from run_experiments import score
+from cmapps.evaluation import score
 
 def sensor_visual_inputs():
     """Descriptive sensor matrices from development engines only; no refitting."""
