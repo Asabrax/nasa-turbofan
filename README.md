@@ -6,7 +6,6 @@ and a 150-cycle training target cap. A full-data TCN ensemble provides the
 strongest overall RMSE in our follow-up comparison.
 
 **[Read the presentation notebook](explore.ipynb)** ·
-[Downloadable HTML report](presentation.html) ·
 [Detailed experiments](experiments.ipynb)
 
 ![Test RMSE by dataset](outputs/presentation/test_rmse_by_dataset.png)
@@ -90,16 +89,19 @@ intervals include zero. See the [confusion matrices](outputs/presentation/matche
 
 ## Explore or reproduce
 
-The executed notebooks and HTML are ready to read. Download the HTML and open it
-locally for the styled report. The main notebook also runs from the small result
-tables included here, without raw data or trained models.
+Open [explore.ipynb](explore.ipynb) for the executed report, including plots and
+tables. It also runs from the small result tables included here, without raw data
+or trained models.
 
 ```bash
 python3.14 -m venv nasa
 ./nasa/bin/python -m pip install -r requirements.txt
 ./nasa/bin/python scripts/execute_notebook.py
-./nasa/bin/python scripts/render_presentation.py
 ```
+
+For an optional browser presentation, run
+`./nasa/bin/python scripts/render_presentation.py` and open the generated
+`presentation.html` locally. This export is ignored by Git.
 
 Requirements record exact versions from Linux/Python 3.14. Fresh download
 availability has not been verified; see the [dependency notes](docs/REPRODUCING.md#dependency-snapshots-and-installation-limits) before rebuilding an environment.

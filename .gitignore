@@ -57,3 +57,6 @@ Thumbs.db
 
 # Local full-data TCN checkpoints
 /outputs/tcn_full/_runs/
+
+# Optional browser export of the committed presentation notebook
+/presentation.html

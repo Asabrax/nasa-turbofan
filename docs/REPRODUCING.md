@@ -20,8 +20,18 @@ From the repository root, after installing `requirements.txt`:
 
 ```bash
 ./nasa/bin/python scripts/execute_notebook.py
+```
+
+The executed notebook is the committed report. To generate an optional,
+self-contained browser presentation:
+
+```bash
 ./nasa/bin/python scripts/render_presentation.py
 ```
+
+Open the resulting `presentation.html` locally. This generated export is ignored
+by Git; readers can use `explore.ipynb` without it. Robustness verification checks
+the notebook in every run and additionally checks the HTML when it exists.
 
 The recorded runs used Python 3.14 on Linux/WSL2, with six training threads.
 Recorded package versions are in `outputs/experiments/environment.txt`.
@@ -186,7 +196,8 @@ After the TCN follow-up and regularization experiments, run
 It fits three inner XGBoost models, reuses/reproduces saved outer predictions,
 and calibrates both families with the same rule and engine endpoints. The final
 model remains unchanged. See the [protocol](../outputs/alert_comparison/METHODS.md).
-Then rebuild the notebook and HTML to export the matched confusion matrices.
+Then execute the notebook to export the matched confusion matrices. Rendering
+HTML is optional.
 
 ## Full-data TCN fit
 
